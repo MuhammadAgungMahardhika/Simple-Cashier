@@ -11,6 +11,9 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Radio;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Repeater\TableColumn;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\TextEntry;
@@ -33,31 +36,20 @@ class TransactionResource extends Resource
         return $schema
             ->components([
                 Select::make('customer_id')
-                    ->label('Customer')
+                    ->label('Nama pelanggan')
                     ->relationship('customer', 'name')
                     ->searchable()
                     ->preload()
                     ->required(),
 
-                Select::make('discount_id')
-                    ->label('Discount')
-                    ->relationship('discount', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->nullable()
-                    ->reactive()
-                    ->afterStateUpdated(function (Get $get, Set $set) {
-                        self::recalculateTotal($get, $set);
-                    }),
-
                 TextInput::make('total_before_discount')
-                    ->label('Subtotal')
+                    ->label('Total Sebelum Diskon')
                     ->numeric()
                     ->disabled()
                     ->dehydrated(),
 
                 TextInput::make('discount_amount')
-                    ->label('Discount Amount')
+                    ->label('Jumlah Diskon')
                     ->numeric()
                     ->disabled()
                     ->dehydrated(),
@@ -69,16 +61,9 @@ class TransactionResource extends Resource
                     ->dehydrated(),
 
                 DatePicker::make('transaction_date')
+                    ->label('Tanggal Transaksi')
                     ->required()
                     ->default(now()),
-
-                Select::make('payment_method')
-                    ->options([
-                        'cash' => 'Cash',
-                        'qris' => 'QRIS',
-                        'transfer' => 'Transfer',
-                    ])
-                    ->required(),
 
                 Select::make('status')
                     ->options([
@@ -89,6 +74,71 @@ class TransactionResource extends Resource
                     ])
                     ->default('pending')
                     ->required(),
+
+                Repeater::make('transactionDetails')
+                    ->label('Detail Transaksi')
+                    ->relationship()
+                    ->table([
+                        TableColumn::make('Nama layanan'),
+                        TableColumn::make('Kuantitas'),
+                        TableColumn::make('Harga'),
+                        TableColumn::make('Subtotal'),
+                    ])
+                    ->schema([
+                        Select::make('service_id')
+                            ->label('Service')
+                            ->relationship('service', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->required(),
+                        TextInput::make('quantity')
+                            ->numeric()
+                            ->minValue(1)
+
+                            ->default(1)
+                            ->required(),
+                        TextInput::make('price')
+                            ->numeric()
+                            ->prefix('Rp')
+                            ->readOnly()
+                            ->required(),
+                    ])
+                    ->required()
+                    ->reactive()
+                    ->afterStateUpdated(function (Get $get, Set $set) {
+                        $subtotal = 0;
+                        $details = $get('transactionDetails') ?? [];
+
+                        foreach ($details as $detail) {
+                            $subtotal += ($detail['quantity'] ?? 0) * ($detail['price'] ?? 0);
+                        }
+
+                        $set('total_before_discount', $subtotal);
+                        self::recalculateTotal($get, $set);
+                    })->columnSpanFull(),
+
+                Radio::make('payment_method')
+                    ->label('Metode Pembayaran')
+                    ->options([
+                        'cash' => 'Cash',
+                        'qris' => 'QRIS',
+                        'transfer' => 'Transfer',
+                    ])
+                    ->default('cash')
+                    ->inline()
+                    ->required(),
+
+
+                Select::make('discount_id')
+                    ->label('Diskon')
+                    ->relationship('discount', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->nullable()
+                    ->reactive()
+                    ->afterStateUpdated(function (Get $get, Set $set) {
+                        self::recalculateTotal($get, $set);
+                    }),
 
             ]);
     }

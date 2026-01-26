@@ -34,6 +34,11 @@ class Transaction extends Model
 
         return 'TRX-' . $date . '-' . str_pad($number, 4, '0', STR_PAD_LEFT);
     }
+
+    public function transactionDetails()
+    {
+        return $this->hasMany(TransactionDetail::class);
+    }
     public function customer()
     {
         return $this->belongsTo(Customer::class);
