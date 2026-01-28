@@ -16,10 +16,10 @@ return new class extends Migration
             $table->string('transaction_code')->unique();
             $table->unsignedBigInteger('discount_id')->nullable();
             $table->unsignedBigInteger('customer_id');
-            $table->unsignedBigInteger('service_id');
             $table->decimal('total_before_discount', 10, 2);
             $table->decimal('discount_amount', 10, 2);
             $table->decimal('total_after_discount', 10, 2);
+            $table->decimal('subtotal', 10, 2);
             $table->date('transaction_date');
             $table->enum('payment_method', ['cash', 'qris', 'transfer']);
             $table->enum('status', ['pending', 'paid', 'unpaid', 'cancelled']);

@@ -17,6 +17,7 @@ return new class extends Migration
             $table->unsignedBigInteger('service_id');
             $table->integer('quantity');
             $table->decimal('price', 10, 2);
+            $table->decimal('subtotal', 10, 2);
 
             $table->string('created_by')->nullable();
             $table->string('updated_by')->nullable();

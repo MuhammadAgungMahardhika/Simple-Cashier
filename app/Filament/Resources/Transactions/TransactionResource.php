@@ -11,6 +11,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Repeater\TableColumn;
@@ -18,6 +19,8 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
@@ -35,87 +38,161 @@ class TransactionResource extends Resource
     {
         return $schema
             ->components([
+                Hidden::make('transaction_date')
+                    ->required()
+                    ->default(now()),
+
                 Select::make('customer_id')
-                    ->label('Nama pelanggan')
+                    ->label('Nama Pelanggan')
                     ->relationship('customer', 'name')
                     ->searchable()
                     ->preload()
                     ->required(),
 
-                TextInput::make('total_before_discount')
-                    ->label('Total Sebelum Diskon')
-                    ->numeric()
-                    ->disabled()
-                    ->dehydrated(),
-
-                TextInput::make('discount_amount')
-                    ->label('Jumlah Diskon')
-                    ->numeric()
-                    ->disabled()
-                    ->dehydrated(),
-
-                TextInput::make('total_after_discount')
-                    ->label('Total')
-                    ->numeric()
-                    ->disabled()
-                    ->dehydrated(),
-
-                DatePicker::make('transaction_date')
-                    ->label('Tanggal Transaksi')
+                Hidden::make('status')
                     ->required()
-                    ->default(now()),
-
-                Select::make('status')
-                    ->options([
-                        'pending' => 'Pending',
-                        'paid' => 'Paid',
-                        'unpaid' => 'Unpaid',
-                        'cancelled' => 'Cancelled',
-                    ])
-                    ->default('pending')
-                    ->required(),
+                    ->default('pending'),
 
                 Repeater::make('transactionDetails')
+                    ->table([
+                        TableColumn::make('layanan'),
+                        TableColumn::make('kuantitas'),
+                        TableColumn::make('harga'),
+                        TableColumn::make('subtotal'),
+                    ])
                     ->label('Detail Transaksi')
                     ->relationship()
-                    ->table([
-                        TableColumn::make('Nama layanan'),
-                        TableColumn::make('Kuantitas'),
-                        TableColumn::make('Harga'),
-                        TableColumn::make('Subtotal'),
-                    ])
                     ->schema([
                         Select::make('service_id')
-                            ->label('Service')
+                            ->label('Layanan')
                             ->relationship('service', 'name')
                             ->searchable()
                             ->preload()
-                            ->required(),
+                            ->required()
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function ($state, Set $set, Get $get, $livewire) {
+                                $service = \App\Models\Service::find($state);
+
+                                if ($service) {
+                                    $set('price', $service->price);
+                                    $qty = $get('quantity') ?? 1;
+                                    $set('subtotal', $service->price * $qty);
+                                }
+
+                                // Recalculate menggunakan livewire instance
+                                $details = $get('../../transactionDetails') ?? [];
+                                $subtotal = collect($details)->sum(fn($item) => $item['subtotal'] ?? 0);
+
+                                $set('../../total_before_discount', $subtotal);
+
+                                $discountId = $get('../../discount_id');
+                                $discountAmount = 0;
+
+                                if ($discountId) {
+                                    $discount = \App\Models\Discount::find($discountId);
+                                    if ($discount) {
+                                        $discountAmount = $discount->type === 'percentage'
+                                            ? ($subtotal * $discount->value / 100)
+                                            : $discount->value;
+                                    }
+                                }
+
+                                $set('../../discount_amount', $discountAmount);
+                                $set('../../total_after_discount', $subtotal - $discountAmount);
+                            })
+                            ->columnSpan(2),
+
                         TextInput::make('quantity')
+                            ->label('Qty')
                             ->numeric()
                             ->minValue(1)
-
                             ->default(1)
-                            ->required(),
+                            ->required()
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function ($state, Set $set, Get $get) {
+                                $price = $get('price') ?? 0;
+                                $set('subtotal', $price * $state);
+
+                                // Recalculate menggunakan path relatif
+                                $details = $get('../../transactionDetails') ?? [];
+                                $subtotal = collect($details)->sum(fn($item) => $item['subtotal'] ?? 0);
+
+                                $set('../../total_before_discount', $subtotal);
+
+                                $discountId = $get('../../discount_id');
+                                $discountAmount = 0;
+
+                                if ($discountId) {
+                                    $discount = \App\Models\Discount::find($discountId);
+                                    if ($discount) {
+                                        $discountAmount = $discount->type === 'percentage'
+                                            ? ($subtotal * $discount->value / 100)
+                                            : $discount->value;
+                                    }
+                                }
+
+                                $set('../../discount_amount', $discountAmount);
+                                $set('../../total_after_discount', $subtotal - $discountAmount);
+                            }),
+
                         TextInput::make('price')
+                            ->label('Harga')
                             ->numeric()
                             ->prefix('Rp')
-                            ->readOnly()
+                            ->disabled()
+                            ->dehydrated()
                             ->required(),
+
+                        TextInput::make('subtotal')
+                            ->label('Subtotal')
+                            ->numeric()
+                            ->prefix('Rp')
+                            ->disabled()
+                            ->dehydrated(),
                     ])
-                    ->required()
+                    ->columns(6)
+                    ->defaultItems(1)
+                    ->addActionLabel('Tambah Layanan')
+                    ->live()
+                    ->columnSpanFull()
+                    ->required(),
+                Select::make('discount_id')
+                    ->label('Diskon')
+                    ->relationship('discount', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->nullable()
                     ->reactive()
                     ->afterStateUpdated(function (Get $get, Set $set) {
-                        $subtotal = 0;
-                        $details = $get('transactionDetails') ?? [];
-
-                        foreach ($details as $detail) {
-                            $subtotal += ($detail['quantity'] ?? 0) * ($detail['price'] ?? 0);
-                        }
-
-                        $set('total_before_discount', $subtotal);
                         self::recalculateTotal($get, $set);
-                    })->columnSpanFull(),
+                    }),
+
+                Section::make('Ringkasan Pembayaran')
+                    ->columns(1)
+                    ->inlineLabel()
+                    ->columnSpanFull()
+                    ->schema([
+                        TextInput::make('total_before_discount')
+                            ->label('Subtotal')
+                            ->prefix('Rp')
+                            ->disabled()
+                            ->dehydrated(),
+
+                        TextInput::make('discount_amount')
+                            ->label('Diskon')
+                            ->prefix('Rp')
+                            ->disabled()
+                            ->dehydrated(),
+
+                        TextInput::make('total_after_discount')
+                            ->label('TOTAL')
+                            ->prefix('Rp')
+                            ->disabled()
+                            ->dehydrated()
+                            ->extraAttributes([
+                                'class' => 'text-xl font-bold'
+                            ]),
+                    ]),
 
                 Radio::make('payment_method')
                     ->label('Metode Pembayaran')
@@ -127,18 +204,6 @@ class TransactionResource extends Resource
                     ->default('cash')
                     ->inline()
                     ->required(),
-
-
-                Select::make('discount_id')
-                    ->label('Diskon')
-                    ->relationship('discount', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->nullable()
-                    ->reactive()
-                    ->afterStateUpdated(function (Get $get, Set $set) {
-                        self::recalculateTotal($get, $set);
-                    }),
 
             ]);
     }
