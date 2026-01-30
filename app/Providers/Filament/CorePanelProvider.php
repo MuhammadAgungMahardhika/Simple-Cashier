@@ -2,8 +2,14 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Widgets\MonthlyRevenueChart;
+use App\Filament\Widgets\PaymentMethodChart;
+use App\Filament\Widgets\PopularServicesChart;
+use App\Filament\Widgets\RecentTransactions;
 use App\Filament\Widgets\RevenueChart;
 use App\Filament\Widgets\SalonStatsOverview;
+use App\Filament\Widgets\TopCustomers;
+use Carbon\Month;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -42,7 +48,12 @@ class CorePanelProvider extends PanelProvider
             ->widgets([
                 AccountWidget::class,
                 SalonStatsOverview::class,
-                RevenueChart::class
+                RevenueChart::class,
+                PopularServicesChart::class,
+                PaymentMethodChart::class,
+                MonthlyRevenueChart::class,
+                RecentTransactions::class,
+                // TopCustomers::class,
             ])
             ->middleware([
                 EncryptCookies::class,
