@@ -36,8 +36,9 @@ use Filament\Tables\Table;
 class TransactionResource extends Resource
 {
     protected static ?string $model = Transaction::class;
-
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static ?string $navigationLabel = 'Transaksi';
+    protected static ?string $label = 'Transaksi';
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::DocumentCheck;
 
     public static function form(Schema $schema): Schema
     {

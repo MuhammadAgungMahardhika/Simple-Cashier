@@ -25,8 +25,9 @@ use Filament\Tables\Table;
 class ServiceResource extends Resource
 {
     protected static ?string $model = Service::class;
-
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static ?string $navigationLabel = 'Layanan';
+    protected static ?string $label = 'Layanan';
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::HandRaised;
 
     public static function form(Schema $schema): Schema
     {

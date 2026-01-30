@@ -23,8 +23,9 @@ use Filament\Tables\Table;
 class DiscountResource extends Resource
 {
     protected static ?string $model = Discount::class;
-
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static ?string $navigationLabel = 'Diskon';
+    protected static ?string $label = 'Diskon';
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::Tag;
 
     public static function form(Schema $schema): Schema
     {

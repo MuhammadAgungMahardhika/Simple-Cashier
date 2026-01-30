@@ -38,4 +38,9 @@ class Customer extends Model
 
         return "{$date}{$year}-{$nextNumber}";
     }
+
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class);
+    }
 }
