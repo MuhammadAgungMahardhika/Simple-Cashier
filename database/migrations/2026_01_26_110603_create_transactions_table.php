@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
-            $table->string('transaction_code')->unique();
             $table->unsignedBigInteger('discount_id')->nullable();
-            $table->unsignedBigInteger('customer_id');
+            $table->unsignedBigInteger('customer_id')->nullable();
+            $table->string('transaction_code')->unique();
             $table->decimal('total_before_discount', 10, 2);
             $table->decimal('discount_amount', 10, 2);
             $table->decimal('total_after_discount', 10, 2);

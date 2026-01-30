@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
+use Filament\Support\Enums\TextSize;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Enums\PaginationMode;
 use Filament\Tables\Enums\RecordActionsPosition;
 use Filament\Tables\Table;
@@ -35,6 +37,11 @@ class AppServiceProvider extends ServiceProvider
             ->striped()
             ->paginationMode(PaginationMode::Simple)
             ->deferFilters(false));
+
+        TextColumn::configureUsing(
+            fn(TextColumn $column) => $column
+                ->size(TextSize::ExtraSmall)
+        );
         $this->configureDefaults();
     }
 
