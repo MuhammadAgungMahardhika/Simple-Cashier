@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Widgets\RevenueChart;
 use App\Filament\Widgets\SalonStatsOverview;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -40,8 +41,8 @@ class CorePanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
                 AccountWidget::class,
-                FilamentInfoWidget::class,
-                SalonStatsOverview::class
+                SalonStatsOverview::class,
+                RevenueChart::class
             ])
             ->middleware([
                 EncryptCookies::class,
