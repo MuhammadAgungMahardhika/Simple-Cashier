@@ -38,11 +38,13 @@ class CustomerResource extends Resource
                     ->required(),
                 TextInput::make('phone')
                     ->label('Nomor Telepon/Wa')
-                    ->tel(),
+                    ->tel()
+                    ->required(),
                 TextInput::make('email')
-                    ->label('Email address')
+                    ->label('Email')
                     ->email(),
-                Textarea::make('address'),
+                Textarea::make('address')
+                    ->label('Alamat'),
 
             ]);
     }

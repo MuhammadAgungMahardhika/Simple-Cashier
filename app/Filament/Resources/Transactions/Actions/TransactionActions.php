@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Transactions\Actions;
 
+use App\Models\Enums\TransactionStatusEnum;
 use App\Models\Transaction;
 use Filament\Actions\Action;
 
@@ -14,10 +15,10 @@ class TransactionActions
             ->icon('heroicon-o-credit-card')
             ->color('success')
             ->requiresConfirmation()
-            ->visible(fn(Transaction $record) => $record->status === 'pending')
+            ->visible(fn(Transaction $record) => $record->status ===  TransactionStatusEnum::Pending->value)
             ->action(function (Transaction $record) {
                 $record->update([
-                    'status' => 'paid',
+                    'status' => TransactionStatusEnum::Paid->value,
                     'paid_at' => now(), // optional tapi recommended
                 ]);
             });
@@ -32,27 +33,14 @@ class TransactionActions
             ->requiresConfirmation()
             ->visible(
                 fn(Transaction $record) =>
-                in_array($record->status, ['pending', 'unpaid'])
+                in_array($record->status, [TransactionStatusEnum::Pending->value, TransactionStatusEnum::Unpaid->value])
             )
             ->action(
                 fn(Transaction $record) =>
-                $record->update(['status' => 'cancelled'])
+                $record->update(['status' => TransactionStatusEnum::Cancelled->value])
             );
     }
 
-    public static function void(): Action
-    {
-        return Action::make('void')
-            ->label('Void')
-            ->icon('heroicon-o-trash')
-            ->color('gray')
-            ->requiresConfirmation()
-            ->visible(fn(Transaction $record) => $record->status === 'paid')
-            ->action(
-                fn(Transaction $record) =>
-                $record->update(['status' => 'cancelled'])
-            );
-    }
 
     /**
      * Helper biar tinggal panggil sekali
@@ -62,7 +50,6 @@ class TransactionActions
         return [
             self::pay(),
             self::cancel(),
-            self::void(),
         ];
     }
 }

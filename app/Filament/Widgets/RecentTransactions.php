@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Models\Enums\TransactionStatusEnum;
 use App\Models\Transaction;
 use Filament\Actions\Action;
 use Filament\Tables;
@@ -66,12 +67,7 @@ class RecentTransactions extends BaseWidget
 
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
-                    ->color(fn(string $state): string => match ($state) {
-                        'paid' => 'success',
-                        'pending' => 'warning',
-                        'unpaid' => 'danger',
-                        'cancelled' => 'gray',
-                    }),
+                    ->color(fn(string $state): string => TransactionStatusEnum::color($state)),
             ])
             ->recordActions([
                 Action::make('view')

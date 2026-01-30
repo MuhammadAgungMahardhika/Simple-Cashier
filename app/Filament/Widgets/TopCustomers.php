@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Customer;
+use App\Models\Enums\TransactionStatusEnum;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
@@ -25,7 +26,7 @@ class TopCustomers extends BaseWidget
                     ->selectRaw('COALESCE(SUM(transactions.total_after_discount), 0) as total_spent')
                     ->leftJoin('transactions', function ($join) {
                         $join->on('customers.id', '=', 'transactions.customer_id')
-                            ->where('transactions.status', '=', 'paid');
+                            ->where('transactions.status', '=',  TransactionStatusEnum::Paid->value);
                     })
                     ->groupBy('customers.id', 'customers.name', 'customers.phone', 'customers.email', 'customers.address', 'customers.created_at', 'customers.updated_at', 'customers.created_by', 'customers.updated_by')
                     ->orderByDesc('total_spent')

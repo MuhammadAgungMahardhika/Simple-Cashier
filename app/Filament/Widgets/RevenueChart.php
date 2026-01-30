@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Models\Enums\TransactionStatusEnum;
 use App\Models\Transaction;
 use Filament\Widgets\ChartWidget;
 use Flowframe\Trend\Trend;
@@ -31,7 +32,8 @@ class RevenueChart extends ChartWidget
                 end: now(),
             )
             ->perDay()
-            ->sum('total_after_discount');
+            ->sum('total_after_discount')
+            ->where('status', TransactionStatusEnum::Paid->value);
 
         return [
             'datasets' => [

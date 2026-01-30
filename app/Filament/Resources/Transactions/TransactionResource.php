@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Transactions;
 
 use App\Filament\Resources\Transactions\Pages\ManageTransactions;
+use App\Models\Enums\TransactionStatusEnum;
 use App\Models\Transaction;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
@@ -16,6 +17,7 @@ use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Repeater\TableColumn;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
@@ -53,16 +55,65 @@ class TransactionResource extends Resource
                     ->dehydrated(),
 
                 Hidden::make('status')
-                    ->default('pending')
+                    ->default(TransactionStatusEnum::Pending->value)
                     ->dehydrated(),
 
                 Select::make('customer_id')
                     ->label('Nama Pelanggan')
                     ->relationship('customer', 'name')
+                    ->getOptionLabelFromRecordUsing(fn($record) => "{$record->code} - {$record->name} ({$record->phone})")
                     ->searchable()
                     ->preload()
                     ->required()
-                    ->columnSpanFull(),
+                    ->columnSpanFull()
+                    ->createOptionForm([
+                        Grid::make()
+                            ->columns(2)
+                            ->schema([
+                                TextInput::make('code')
+                                    ->label('Kode Pelanggan')
+                                    ->readOnly()
+                                    ->visibleOn(['edit'])
+                                    ->required(),
+                                TextInput::make('name')
+                                    ->label('Nama Pelanggan')
+                                    ->required(),
+                                TextInput::make('phone')
+                                    ->label('Nomor Telepon/Wa')
+                                    ->tel()
+                                    ->required(),
+                                TextInput::make('email')
+                                    ->label('Email')
+                                    ->email(),
+                                Textarea::make('address')
+                                    ->label('Alamat'),
+                            ]),
+                    ])
+                    ->createOptionModalHeading('Tambah Pelanggan Baru')
+                    ->editOptionForm([
+                        Grid::make()
+                            ->columns(2)
+                            ->schema([
+                                TextInput::make('code')
+                                    ->label('Kode Pelanggan')
+                                    ->readOnly()
+                                    ->visibleOn(['edit'])
+                                    ->required(),
+                                TextInput::make('name')
+                                    ->label('Nama Pelanggan')
+                                    ->required(),
+                                TextInput::make('phone')
+                                    ->label('Nomor Telepon/Wa')
+                                    ->tel()
+                                    ->required(),
+                                TextInput::make('email')
+                                    ->label('Email')
+                                    ->email(),
+                                Textarea::make('address')
+                                    ->label('Alamat'),
+                            ]),
+                    ])
+                    ->editOptionModalHeading('Ubah Data Pelanggan'),
 
                 Repeater::make('transactionDetails')
                     ->relationship()
@@ -365,12 +416,7 @@ class TransactionResource extends Resource
 
                 TextColumn::make('status')
                     ->badge()
-                    ->color(fn(string $state): string => match ($state) {
-                        'paid' => 'success',
-                        'pending' => 'warning',
-                        'unpaid' => 'danger',
-                        'cancelled' => 'gray',
-                    }),
+                    ->color(fn(string $state): string => TransactionStatusEnum::color($state)),
 
                 TextColumn::make('payment_method')
                     ->label('Pembayaran')

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Models\Enums\TransactionStatusEnum;
 use App\Models\Transaction;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Facades\DB;
@@ -25,14 +26,14 @@ class MonthlyRevenueChart extends ChartWidget
             // Current year
             $currentRevenue = Transaction::whereYear('transaction_date', $currentYear)
                 ->whereMonth('transaction_date', $month)
-                ->where('status', 'paid')
+                ->where('status', TransactionStatusEnum::Paid->value)
                 ->sum('total_after_discount');
             $currentYearData[] = $currentRevenue;
 
             // Last year
             $lastRevenue = Transaction::whereYear('transaction_date', $lastYear)
                 ->whereMonth('transaction_date', $month)
-                ->where('status', 'paid')
+                ->where('status', TransactionStatusEnum::Paid->value)
                 ->sum('total_after_discount');
             $lastYearData[] = $lastRevenue;
         }

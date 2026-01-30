@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Models\Transaction;
 use App\Models\Customer;
+use App\Models\Enums\TransactionStatusEnum;
 use App\Models\Service;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -23,11 +24,11 @@ class SalonStatsOverview extends BaseWidget
 
         // 1. Pendapatan Hari Ini
         $todayRevenue = Transaction::whereDate('transaction_date', $today)
-            ->where('status', 'paid')
+            ->where('status',  TransactionStatusEnum::Paid->value)
             ->sum('total_after_discount');
 
         $yesterdayRevenue = Transaction::whereDate('transaction_date', $yesterday)
-            ->where('status', 'paid')
+            ->where('status',  TransactionStatusEnum::Paid->value)
             ->sum('total_after_discount');
 
         $revenueChange = $yesterdayRevenue > 0
@@ -47,11 +48,11 @@ class SalonStatsOverview extends BaseWidget
 
         // 3. Pendapatan Bulan Ini
         $monthRevenue = Transaction::whereDate('transaction_date', '>=', $startOfMonth)
-            ->where('status', 'paid')
+            ->where('status',  TransactionStatusEnum::Paid->value)
             ->sum('total_after_discount');
 
         $lastMonthRevenue = Transaction::whereBetween('transaction_date', [$startOfLastMonth, $endOfLastMonth])
-            ->where('status', 'paid')
+            ->where('status',  TransactionStatusEnum::Paid->value)
             ->sum('total_after_discount');
 
         $monthRevenueChange = $lastMonthRevenue > 0
@@ -65,7 +66,7 @@ class SalonStatsOverview extends BaseWidget
         $newCustomersThisMonth = Customer::whereDate('created_at', '>=', $startOfMonth)->count();
 
         // 6. Transaksi Pending
-        $pendingTransactions = Transaction::where('status', 'pending')->count();
+        $pendingTransactions = Transaction::where('status', TransactionStatusEnum::Pending->value)->count();
 
         return [
             Stat::make('Pendapatan Hari Ini', 'Rp ' . number_format($todayRevenue, 0, ',', '.'))
@@ -94,7 +95,7 @@ class SalonStatsOverview extends BaseWidget
                 ->description('Perlu diselesaikan')
                 ->descriptionIcon('heroicon-m-clock')
                 ->color('warning')
-                ->url(route('filament.app.resources.transactions.index', ['tableFilters' => ['status' => 'pending']])),
+                ->url(route('filament.app.resources.transactions.index', ['tableFilters' => ['status' => TransactionStatusEnum::Pending->value]])),
 
             Stat::make('Layanan Terpopuler', $this->getMostPopularService())
                 ->description('Layanan paling banyak dipilih')
@@ -109,7 +110,7 @@ class SalonStatsOverview extends BaseWidget
         for ($i = $days - 1; $i >= 0; $i--) {
             $date = now()->subDays($i)->startOfDay();
             $revenue = Transaction::whereDate('transaction_date', $date)
-                ->where('status', 'paid')
+                ->where('status',  TransactionStatusEnum::Paid->value)
                 ->sum('total_after_discount');
             $data[] = $revenue;
         }
