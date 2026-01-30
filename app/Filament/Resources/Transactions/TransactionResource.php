@@ -396,8 +396,10 @@ class TransactionResource extends Resource
                 Filter::make('transaction_date')
                     ->schema([
                         DatePicker::make('from')
+                            ->default(now()->startOfDay())
                             ->label('Dari Tanggal'),
                         DatePicker::make('to')
+                            ->default(now()->endOfDay())
                             ->label('Sampai Tanggal'),
                     ])
                     ->query(function ($query, array $data) {
