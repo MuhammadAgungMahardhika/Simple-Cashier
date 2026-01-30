@@ -387,6 +387,7 @@ class TransactionResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->recordTitleAttribute('transaction_code')
             ->defaultSort('transaction_date', 'desc')
             ->columns([
                 TextColumn::make('transaction_date')
@@ -476,8 +477,8 @@ class TransactionResource extends Resource
 
             ], layout: FiltersLayout::AboveContent)
             ->recordActions([
-                ViewAction::make(),
-                EditAction::make(),
+                ViewAction::make()->recordTitleAttribute('transaction_code'),
+                EditAction::make()->recordTitleAttribute('transaction_code'),
                 DeleteAction::make(),
             ])
             ->toolbarActions([
