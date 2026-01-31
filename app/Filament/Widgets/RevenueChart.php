@@ -7,6 +7,7 @@ use App\Models\Transaction;
 use Filament\Widgets\ChartWidget;
 use Flowframe\Trend\Trend;
 use Flowframe\Trend\TrendValue;
+use Illuminate\Support\Facades\Auth;
 
 class RevenueChart extends ChartWidget
 {
@@ -16,6 +17,12 @@ class RevenueChart extends ChartWidget
 
     public ?string $filter = '7days';
 
+
+
+    public static function canView(): bool
+    {
+        return Auth::user()->can('view-revenue-widget');
+    }
     protected function getData(): array
     {
         $days = match ($this->filter) {

@@ -19,6 +19,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use UnitEnum;
 
 class DiscountResource extends Resource
 {
@@ -26,6 +27,7 @@ class DiscountResource extends Resource
     protected static ?string $navigationLabel = 'Diskon';
     protected static ?string $label = 'Diskon';
     protected static string|BackedEnum|null $navigationIcon = Heroicon::Tag;
+    protected static string|UnitEnum|null $navigationGroup = 'Master Data';
 
     public static function form(Schema $schema): Schema
     {

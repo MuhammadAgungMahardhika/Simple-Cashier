@@ -8,14 +8,18 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 class TopCustomers extends BaseWidget
 {
     protected static ?int $sort = 7;
     protected int | string | array $columnSpan = 'full';
-
     protected static ?string $heading = 'Pelanggan Setia';
 
+    public static function canView(): bool
+    {
+        return Auth::user()->can('view-top-customers-widget');
+    }
     public function table(Table $table): Table
     {
         return $table

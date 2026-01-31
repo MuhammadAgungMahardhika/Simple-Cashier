@@ -8,14 +8,19 @@ use Filament\Actions\Action;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
+use Illuminate\Support\Facades\Auth;
 
 class RecentTransactions extends BaseWidget
 {
     protected static ?int $sort = 6;
     protected int | string | array $columnSpan = 'full';
-
     protected static ?string $heading = 'Transaksi Terbaru';
 
+
+    public static function canView(): bool
+    {
+        return Auth::user()->can('view-recent-transactions-widget');
+    }
     public function table(Table $table): Table
     {
         return $table

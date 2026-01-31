@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Models\Transaction;
 use Filament\Widgets\ChartWidget;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class PaymentMethodChart extends ChartWidget
@@ -14,6 +15,10 @@ class PaymentMethodChart extends ChartWidget
 
     public ?string $filter = 'month';
 
+    public static function canView(): bool
+    {
+        return Auth::user()->can('view-payment-method-widget');
+    }
     protected function getData(): array
     {
         $dateFilter = match ($this->filter) {

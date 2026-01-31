@@ -8,12 +8,18 @@ use App\Models\Enums\TransactionStatusEnum;
 use App\Models\Service;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class SalonStatsOverview extends BaseWidget
 {
     protected static ?int $sort = 1;
 
+
+    public static function canView(): bool
+    {
+        return Auth::user()->can('view-stats-widget');
+    }
     protected function getStats(): array
     {
         $today = now()->startOfDay();

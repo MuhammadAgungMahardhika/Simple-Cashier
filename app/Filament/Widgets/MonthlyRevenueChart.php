@@ -5,6 +5,7 @@ namespace App\Filament\Widgets;
 use App\Models\Enums\TransactionStatusEnum;
 use App\Models\Transaction;
 use Filament\Widgets\ChartWidget;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class MonthlyRevenueChart extends ChartWidget
@@ -14,6 +15,10 @@ class MonthlyRevenueChart extends ChartWidget
     protected  ?string $maxHeight = '300px';
     protected int | string | array $columnSpan = 'full';
 
+    public static function canView(): bool
+    {
+        return Auth::user()->can('view-monthly-revenue-widget');
+    }
     protected function getData(): array
     {
         $currentYear = now()->year;

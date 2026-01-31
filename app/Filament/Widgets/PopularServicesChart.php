@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Models\TransactionDetail;
 use Filament\Widgets\ChartWidget;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class PopularServicesChart extends ChartWidget
@@ -11,8 +12,13 @@ class PopularServicesChart extends ChartWidget
     protected  ?string $heading = 'Layanan Terpopuler';
     protected static ?int $sort = 3;
     protected  ?string $maxHeight = '300px';
-
     public ?string $filter = 'month';
+
+
+    public static function canView(): bool
+    {
+        return Auth::user()->can('view-popular-services-widget');
+    }
 
     protected function getData(): array
     {

@@ -21,6 +21,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use UnitEnum;
 
 class ServiceResource extends Resource
 {
@@ -28,6 +29,7 @@ class ServiceResource extends Resource
     protected static ?string $navigationLabel = 'Layanan';
     protected static ?string $label = 'Layanan';
     protected static string|BackedEnum|null $navigationIcon = Heroicon::HandRaised;
+    protected static string|UnitEnum|null $navigationGroup = 'Master Data';
 
     public static function form(Schema $schema): Schema
     {

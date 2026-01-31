@@ -2,10 +2,12 @@
 
 namespace App\Policies;
 
+use App\Models\Customer;
 use App\Models\User;
 use App\Traits\HasPolicyAuthorization;
+use Illuminate\Auth\Access\Response;
 
-class TransactionPolicy
+class CustomerPolicy
 {
     use HasPolicyAuthorization;
 }
