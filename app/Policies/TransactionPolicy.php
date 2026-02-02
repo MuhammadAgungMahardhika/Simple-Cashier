@@ -13,7 +13,6 @@ class TransactionPolicy
     {
         return  static::hasPermission('update', static::getResourceName()) && in_array($record->status, [
             'pending',
-            'unpaid',
         ]);
     }
 
@@ -21,7 +20,6 @@ class TransactionPolicy
     {
         return static::hasPermission('delete', static::getResourceName()) && in_array($record->status, [
             'pending',
-            'unpaid',
         ]);
     }
 }
