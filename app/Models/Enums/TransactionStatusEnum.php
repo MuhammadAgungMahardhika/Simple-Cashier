@@ -57,10 +57,10 @@ enum TransactionStatusEnum: string
                 return 'danger';
                 break;
             case self::Cancelled->value:
-                return 'secondary';
+                return '';
                 break;
             default:
-                return 'warning';
+                return 'info';
         }
     }
 }

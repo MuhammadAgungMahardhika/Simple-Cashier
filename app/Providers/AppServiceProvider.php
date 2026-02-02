@@ -42,10 +42,7 @@ class AppServiceProvider extends ServiceProvider
             fn(TextColumn $column) => $column
                 ->size(TextSize::ExtraSmall)
         );
-        Action::configureUsing(
-            fn(Action $action) => $action
-                ->slideOver()
-        );
+
         $this->configureDefaults();
     }
 

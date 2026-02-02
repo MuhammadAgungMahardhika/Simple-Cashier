@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,6 +11,7 @@
                 size: A4;
                 margin: 20mm;
             }
+
             .no-print {
                 display: none;
             }
@@ -34,7 +36,7 @@
             margin: 0 auto;
             background: white;
             padding: 40px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
         }
 
         .header {
@@ -244,7 +246,7 @@
             cursor: pointer;
             font-size: 14px;
             font-weight: 600;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             z-index: 1000;
         }
 
@@ -253,6 +255,7 @@
         }
     </style>
 </head>
+
 <body>
     <button onclick="window.print()" class="print-button no-print">🖨️ Print Invoice</button>
 
@@ -260,18 +263,19 @@
         <!-- Header -->
         <div class="header">
             <div class="company-info">
-                <div class="company-name">SALON CANTIK</div>
+                <div class="company-name">SALON </div>
                 <div class="company-details">
                     Jl. Contoh No. 123, Kota ABC<br>
                     Telp: 0812-3456-7890<br>
-                    Email: info@saloncantik.com<br>
-                    Instagram: @saloncantik
+                    Email: info@salon.com<br>
+                    Instagram: @salon
                 </div>
             </div>
             <div class="invoice-info">
-                <div class="invoice-title">INVOICE</div>
+                <div class="invoice-title">STRUK PEMBAYARAN</div>
                 <div class="invoice-number">#{{ $transaction->transaction_code }}</div>
-                <div class="invoice-number">{{ $transaction->transaction_date->format('d F Y') }}</div>
+                <div class="invoice-number">{{ \Carbon\Carbon::parse($transaction->transaction_date)->format('d F Y') }}
+                </div>
             </div>
         </div>
 
@@ -283,14 +287,14 @@
                     <div class="detail-row">
                         <strong>{{ $transaction->customer->name }}</strong>
                     </div>
-                    @if($transaction->customer->phone)
-                    <div class="detail-row">{{ $transaction->customer->phone }}</div>
+                    @if ($transaction->customer->phone)
+                        <div class="detail-row">{{ $transaction->customer->phone }}</div>
                     @endif
-                    @if($transaction->customer->email)
-                    <div class="detail-row">{{ $transaction->customer->email }}</div>
+                    @if ($transaction->customer->email)
+                        <div class="detail-row">{{ $transaction->customer->email }}</div>
                     @endif
-                    @if($transaction->customer->address)
-                    <div class="detail-row">{{ $transaction->customer->address }}</div>
+                    @if ($transaction->customer->address)
+                        <div class="detail-row">{{ $transaction->customer->address }}</div>
                     @endif
                 </div>
             </div>
@@ -300,7 +304,7 @@
                 <div class="detail-content">
                     <div class="detail-row">
                         <span class="detail-label">Tanggal</span>
-                        <span>{{ $transaction->transaction_date->format('d/m/Y H:i') }}</span>
+                        <span>{{ \Carbon\Carbon::parse($transaction->transaction_date)->format('d/m/Y H:i') }}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Kasir</span>
@@ -328,14 +332,14 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach($transaction->transactionDetails as $index => $detail)
-                <tr>
-                    <td class="text-center">{{ $index + 1 }}</td>
-                    <td>{{ $detail->service_name }}</td>
-                    <td class="text-center">{{ $detail->quantity }}</td>
-                    <td class="text-right">Rp {{ number_format($detail->price, 0, ',', '.') }}</td>
-                    <td class="text-right">Rp {{ number_format($detail->subtotal, 0, ',', '.') }}</td>
-                </tr>
+                @foreach ($transaction->transactionDetails as $index => $detail)
+                    <tr>
+                        <td class="text-center">{{ $index + 1 }}</td>
+                        <td>{{ $detail->service_name }}</td>
+                        <td class="text-center">{{ $detail->quantity }}</td>
+                        <td class="text-right">Rp {{ number_format($detail->price, 0, ',', '.') }}</td>
+                        <td class="text-right">Rp {{ number_format($detail->subtotal, 0, ',', '.') }}</td>
+                    </tr>
                 @endforeach
             </tbody>
         </table>
@@ -348,11 +352,11 @@
                     <span>Rp {{ number_format($transaction->total_before_discount, 0, ',', '.') }}</span>
                 </div>
 
-                @if($transaction->discount)
-                <div class="summary-row">
-                    <span>Diskon ({{ $transaction->discount->name }})</span>
-                    <span>- Rp {{ number_format($transaction->discount_amount, 0, ',', '.') }}</span>
-                </div>
+                @if ($transaction->discount)
+                    <div class="summary-row">
+                        <span>Diskon ({{ $transaction->discount->name }})</span>
+                        <span>- Rp {{ number_format($transaction->discount_amount, 0, ',', '.') }}</span>
+                    </div>
                 @endif
 
                 <div class="summary-row total">
@@ -389,4 +393,5 @@
         </div>
     </div>
 </body>
+
 </html>

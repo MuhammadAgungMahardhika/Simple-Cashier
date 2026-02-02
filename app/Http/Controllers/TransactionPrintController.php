@@ -21,6 +21,11 @@ class TransactionPrintController extends Controller
 
     /**
      * Print receipt with specific format
+     * 
+     * Supported formats:
+     * - thermal: Untuk thermal printer 80mm (default)
+     * - a4: Untuk printer A4 (invoice format)
+     * - dotmatrix: Untuk printer dot matrix LQ310
      */
     public function printWithFormat($id, $format = 'thermal')
     {
@@ -30,9 +35,18 @@ class TransactionPrintController extends Controller
         $viewName = match ($format) {
             'a4' => 'print.transaction-receipt-a4',
             'thermal' => 'print.transaction-receipt-thermal',
+            'dotmatrix', 'lq310' => 'print.transaction-receipt-dotmatrix',
             default => 'print.transaction-receipt-thermal',
         };
 
         return view($viewName, compact('transaction'));
+    }
+
+    /**
+     * Preview print format before printing
+     */
+    public function preview($id, $format = 'thermal')
+    {
+        return $this->printWithFormat($id, $format);
     }
 }

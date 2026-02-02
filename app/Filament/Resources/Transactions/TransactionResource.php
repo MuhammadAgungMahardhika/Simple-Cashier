@@ -2,10 +2,13 @@
 
 namespace App\Filament\Resources\Transactions;
 
+use App\Filament\Resources\TransactionResource\Actions\PrintReceiptAction;
+use App\Filament\Resources\Transactions\Actions\TransactionActions;
 use App\Filament\Resources\Transactions\Pages\ManageTransactions;
 use App\Models\Enums\TransactionStatusEnum;
 use App\Models\Transaction;
 use BackedEnum;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -409,7 +412,7 @@ class TransactionResource extends Resource
 
                 TextColumn::make('transactionDetails.service.name')
                     ->label('Layanan')
-                    ->badge()
+                    ->searchable()
                     ->listWithLineBreaks()
                     ->separator(',')
                     ->limitList(2)
@@ -417,11 +420,13 @@ class TransactionResource extends Resource
 
                 TextColumn::make('status')
                     ->badge()
+                    ->formatStateUsing(function ($state) {
+                        return TransactionStatusEnum::labels()[$state];
+                    })
                     ->color(fn(string $state): string => TransactionStatusEnum::color($state)),
 
                 TextColumn::make('payment_method')
                     ->label('Pembayaran')
-                    ->badge()
                     ->formatStateUsing(fn(string $state): string => match ($state) {
                         'cash' => 'Cash',
                         'qris' => 'QRIS',
@@ -477,15 +482,22 @@ class TransactionResource extends Resource
 
             ], layout: FiltersLayout::AboveContent)
             ->recordActions([
+                ActionGroup::make([
+                    PrintReceiptAction::printWithFormat('thermal'),
+                    PrintReceiptAction::printWithFormat('a4'),
+                    PrintReceiptAction::printWithFormat('dotmatrix'),
+                ])->icon(Heroicon::Printer)->color('gray')->label('Cetak Struk'),
+                // Group 2: Transaction Status Actions
+                ActionGroup::make(TransactionActions::cashierActions())
+                    ->label(' ')
+                    ->icon('heroicon-o-ellipsis-vertical')
+                    ->color('primary'),
                 ViewAction::make()->recordTitleAttribute('transaction_code'),
                 EditAction::make()->recordTitleAttribute('transaction_code'),
                 DeleteAction::make(),
             ])
-            ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
-            ]);
+
+            ->toolbarActions([]);
     }
 
 

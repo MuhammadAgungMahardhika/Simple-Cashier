@@ -191,11 +191,11 @@
     <div class="receipt">
         <!-- Header -->
         <div class="header">
-            <div class="salon-name">SALON CANTIK</div>
+            <div class="salon-name">SALON </div>
             <div class="salon-info">
                 Jl. Contoh No. 123, Kota<br>
                 Telp: 0812-3456-7890<br>
-                Instagram: @saloncantik
+                Instagram: @salon
             </div>
         </div>
 
@@ -207,7 +207,7 @@
             </div>
             <div class="row">
                 <span class="label">Tanggal</span>
-                <span>{{ $transaction->transaction_date->format('d/m/Y H:i') }}</span>
+                <span>{{ \Carbon\Carbon::parse($transaction->transaction_date)->format('d/m/Y H:i') }}</span>
             </div>
             <div class="row">
                 <span class="label">Pelanggan</span>
