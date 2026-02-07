@@ -10,12 +10,15 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Radio;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
@@ -54,6 +57,38 @@ class ServiceResource extends Resource
                     ->label('Deskripsi Layanan')
                     ->columnSpanFull(),
 
+                Radio::make('type')
+                    ->label('Tipe Fee')
+                    ->options([
+                        'percentage' => 'Percentage',
+                        'fixed' => 'Fixed',
+                    ])
+                    ->required()
+                    ->reactive(),
+
+                TextInput::make('fee')
+                    ->label('Fee Layanan')
+                    ->required()
+                    ->numeric()
+                    ->reactive()
+                    ->rules(fn(Get $get) => match ($get('type')) {
+                        'percentage' => ['min:1', 'max:100'],
+                        'fixed' => ['min:1'],
+                        default => [],
+                    })
+                    ->helperText(
+                        fn(Get $get) =>
+                        $get('type') === 'percentage'
+                            ? 'Masukkan angka 1–100'
+                            : 'Masukkan nominal rupiah'
+                    )
+                    ->suffix(
+                        fn(Get $get) =>
+                        $get('type') === 'percentage'
+                            ? '%'
+                            : 'Rp'
+                    ),
+
             ]);
     }
 
@@ -74,6 +109,25 @@ class ServiceResource extends Resource
                     ->alignEnd()
                     ->money('idr')
                     ->sortable(),
+                TextColumn::make('type')
+                    ->label('Tipe Fee')
+                    ->badge()
+                    ->formatStateUsing(fn($state) => ucfirst($state))
+                    ->color(fn($state) => match ($state) {
+                        'percentage' => 'warning',
+                        'fixed' => 'success',
+                        default => 'gray',
+                    }),
+
+                TextColumn::make('fee')
+                    ->label('Fee Layanan')
+                    ->alignEnd()
+                    ->sortable()
+                    ->formatStateUsing(function ($state, $record) {
+                        return $record->type === 'percentage'
+                            ? "{$state}%"
+                            : 'Rp ' . number_format($state, 0, ',', '.');
+                    }),
                 IconColumn::make('is_active')
                     ->label('Aktif?')
                     ->boolean(),

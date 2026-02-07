@@ -15,10 +15,12 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('transaction_id');
             $table->unsignedBigInteger('service_id')->nullable();
+            $table->unsignedBigInteger('therapist_id')->nullable();
             $table->string('service_name');
             $table->integer('quantity');
             $table->decimal('price', 10, 2);
             $table->decimal('subtotal', 10, 2);
+            $table->decimal('fee_amount', 10, 2)->default(0);
 
             $table->string('created_by')->nullable();
             $table->string('updated_by')->nullable();

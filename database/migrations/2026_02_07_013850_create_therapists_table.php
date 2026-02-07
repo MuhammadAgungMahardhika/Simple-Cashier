@@ -11,15 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('services', function (Blueprint $table) {
+        Schema::create('therapists', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->decimal('price', 10, 2);
-            $table->text('description')->nullable();
-            $table->integer('duration')->nullable();
-
-            $table->enum('type', ['percentage', 'fixed'])->default('fixed');
-            $table->decimal('fee', 10, 2)->nullable();
+            $table->string('phone')->nullable();
 
             $table->boolean('is_active')->default(true);
             $table->string('created_by')->nullable();
@@ -33,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('services');
+        Schema::dropIfExists('therapists');
     }
 };

@@ -7,6 +7,7 @@ use App\Models\Enums\TransactionStatusEnum;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ManageRecords;
 use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Support\Enums\Size;
 use Illuminate\Database\Eloquent\Builder;
 
 class ManageTransactions extends ManageRecords
@@ -16,7 +17,7 @@ class ManageTransactions extends ManageRecords
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
+            CreateAction::make()->size(Size::ExtraLarge)->slideOver(),
         ];
     }
 

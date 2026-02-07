@@ -20,6 +20,11 @@ class TransactionDetail extends Model
     {
         return $this->belongsTo(Service::class);
     }
+
+    public function therapist()
+    {
+        return $this->belongsTo(Therapist::class);
+    }
     public function getSubtotalAttribute()
     {
         return $this->quantity * $this->price;
