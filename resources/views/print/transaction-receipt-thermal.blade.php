@@ -231,7 +231,7 @@
 
             @foreach ($transaction->transactionDetails as $detail)
                 <div class="item-row">
-                    <div class="item-name">{{ $detail->service_name }}</div>
+                    <div class="item-name">{{ $detail->item_name }}</div>
                     <div class="item-qty">{{ $detail->quantity }}</div>
                     <div class="item-price">{{ number_format($detail->subtotal, 0, ',', '.') }}</div>
                 </div>

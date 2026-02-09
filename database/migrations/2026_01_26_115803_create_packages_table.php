@@ -11,19 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('services', function (Blueprint $table) {
+        Schema::create('packages', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->decimal('price', 10, 2);
-            $table->decimal('member_price', 10, 2);
-            $table->decimal('package_price', 10, 2);
-            $table->text('description')->nullable();
-            $table->integer('duration')->nullable();
-
-            $table->enum('type', ['percentage', 'fixed'])->default('fixed');
-            $table->decimal('fee', 10, 2)->nullable();
-
+            $table->string('description');
             $table->boolean('is_active')->default(true);
+
             $table->string('created_by')->nullable();
             $table->string('updated_by')->nullable();
             $table->timestamps();
@@ -35,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('services');
+        Schema::dropIfExists('packages');
     }
 };

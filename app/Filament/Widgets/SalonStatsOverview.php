@@ -137,11 +137,11 @@ class SalonStatsOverview extends BaseWidget
     private function getMostPopularService(): string
     {
         $service = DB::table('transaction_details')
-            ->select('service_name', DB::raw('COUNT(*) as total'))
-            ->groupBy('service_name')
+            ->select('item_name', DB::raw('COUNT(*) as total'))
+            ->groupBy('item_name')
             ->orderBy('total', 'desc')
             ->first();
 
-        return $service ? $service->service_name : 'Belum ada data';
+        return $service ? $service->item_name : 'Belum ada data';
     }
 }

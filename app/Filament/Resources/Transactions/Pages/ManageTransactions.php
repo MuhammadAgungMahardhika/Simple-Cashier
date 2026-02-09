@@ -2,9 +2,11 @@
 
 namespace App\Filament\Resources\Transactions\Pages;
 
+use App\Filament\Exports\TransactionExporter;
 use App\Filament\Resources\Transactions\TransactionResource;
 use App\Models\Enums\TransactionStatusEnum;
 use Filament\Actions\CreateAction;
+use Filament\Actions\ExportAction;
 use Filament\Resources\Pages\ManageRecords;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Support\Enums\Size;
@@ -18,6 +20,7 @@ class ManageTransactions extends ManageRecords
     {
         return [
             CreateAction::make()->size(Size::ExtraLarge)->slideOver(),
+            ExportAction::make()->exporter(TransactionExporter::class)
         ];
     }
 

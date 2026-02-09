@@ -55,6 +55,14 @@ class PermissionAndRoleSeeder extends Seeder
             'delete-transaction',
         ];
 
+        $packagePermissions = [
+            'view-any-package',
+            'view-package',
+            'create-package',
+            'update-package',
+            'delete-package',
+        ];
+
         $discountPermissions = [
             'view-any-discount',
             'view-discount',
@@ -80,6 +88,7 @@ class PermissionAndRoleSeeder extends Seeder
             $customerPermissions,
             $servicePermissions,
             $transactionPermissions,
+            $packagePermissions,
             $discountPermissions,
             $widgetPermissions,
         );
@@ -96,6 +105,7 @@ class PermissionAndRoleSeeder extends Seeder
                 $customerPermissions,
                 $servicePermissions,
                 $transactionPermissions,
+                $packagePermissions,
                 $discountPermissions,
                 $widgetPermissions,
             ),
@@ -113,6 +123,9 @@ class PermissionAndRoleSeeder extends Seeder
                 'view-transaction',
                 'create-transaction',
                 'update-transaction',
+
+                'view-any-package',
+                'view-package',
 
                 'view-monthly-revenue-widget',
                 'view-payment-method-widget',

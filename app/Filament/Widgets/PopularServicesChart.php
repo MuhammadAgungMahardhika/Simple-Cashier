@@ -32,9 +32,9 @@ class PopularServicesChart extends ChartWidget
 
         $data = DB::table('transaction_details')
             ->join('transactions', 'transaction_details.transaction_id', '=', 'transactions.id')
-            ->select('transaction_details.service_name', DB::raw('COUNT(*) as total'))
+            ->select('transaction_details.item_name', DB::raw('COUNT(*) as total'))
             ->where('transactions.transaction_date', '>=', $dateFilter)
-            ->groupBy('transaction_details.service_name')
+            ->groupBy('transaction_details.item_name')
             ->orderBy('total', 'desc')
             ->limit(10)
             ->get();
@@ -58,7 +58,7 @@ class PopularServicesChart extends ChartWidget
                     ],
                 ],
             ],
-            'labels' => $data->pluck('service_name')->toArray(),
+            'labels' => $data->pluck('item_name')->toArray(),
         ];
     }
 

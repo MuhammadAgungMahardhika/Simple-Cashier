@@ -76,6 +76,6 @@ class CorePanelProvider extends PanelProvider
             ])->sidebarCollapsibleOnDesktop(true)
             ->authMiddleware([
                 Authenticate::class,
-            ])->readOnlyRelationManagersOnResourceViewPagesByDefault(true);
+            ])->readOnlyRelationManagersOnResourceViewPagesByDefault(true)->databaseNotifications()->databaseNotificationsPolling(null);
     }
 }

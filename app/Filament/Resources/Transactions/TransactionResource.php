@@ -139,8 +139,8 @@ class TransactionResource extends Resource
                                 $service = \App\Models\Service::find($state);
 
                                 if ($service) {
-                                    // Set service_name untuk disimpan ke database
-                                    $set('service_name', $service->name);
+                                    // Set item_name untuk disimpan ke database
+                                    $set('item_name', $service->name);
                                     $set('price', $service->price);
 
                                     $qty = $get('quantity') ?? 1;
@@ -175,7 +175,7 @@ class TransactionResource extends Resource
                             })
                             ->columnSpan(3),
 
-                        Hidden::make('service_name')
+                        Hidden::make('item_name')
                             ->dehydrated(),
 
                         TextInput::make('quantity')

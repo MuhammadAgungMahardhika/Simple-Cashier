@@ -319,7 +319,7 @@
             @foreach ($transaction->transactionDetails as $index => $detail)
                 <div class="item-row">
                     <div class="col-no">{{ $index + 1 }}</div>
-                    <div class="col-item">{{ $detail->service_name }}</div>
+                    <div class="col-item">{{ $detail->item_name }}</div>
                     <div class="col-qty">{{ $detail->quantity }}</div>
                     <div class="col-price">{{ number_format($detail->price, 0, ',', '.') }}</div>
                     <div class="col-total">{{ number_format($detail->subtotal, 0, ',', '.') }}</div>

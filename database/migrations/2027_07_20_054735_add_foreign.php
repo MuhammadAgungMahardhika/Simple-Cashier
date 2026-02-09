@@ -35,6 +35,19 @@ return new class extends Migration
                 ->onUpdate('cascade')
                 ->onDelete('set null');
         });
+
+        Schema::table('package_details', function (Blueprint $table) {
+            $table->foreign('package_id', 'fk_package_detail_package')
+                ->references('id')
+                ->on('packages')
+                ->onUpdate('cascade')
+                ->onDelete('cascade');
+            $table->foreign('service_id', 'fk_package_detail_service')
+                ->references('id')
+                ->on('services')
+                ->onUpdate('cascade')
+                ->onDelete('set null');
+        });
     }
 
     /**

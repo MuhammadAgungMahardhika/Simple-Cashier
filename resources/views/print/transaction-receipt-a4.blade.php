@@ -335,7 +335,7 @@
                 @foreach ($transaction->transactionDetails as $index => $detail)
                     <tr>
                         <td class="text-center">{{ $index + 1 }}</td>
-                        <td>{{ $detail->service_name }}</td>
+                        <td>{{ $detail->item_name }}</td>
                         <td class="text-center">{{ $detail->quantity }}</td>
                         <td class="text-right">Rp {{ number_format($detail->price, 0, ',', '.') }}</td>
                         <td class="text-right">Rp {{ number_format($detail->subtotal, 0, ',', '.') }}</td>
