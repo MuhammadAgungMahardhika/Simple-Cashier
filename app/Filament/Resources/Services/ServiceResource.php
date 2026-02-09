@@ -18,6 +18,7 @@ use Filament\Forms\Components\Toggle;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -41,11 +42,24 @@ class ServiceResource extends Resource
                 TextInput::make('name')
                     ->label('Nama Layanan')
                     ->required(),
-                TextInput::make('price')
-                    ->label('Harga Layanan')
-                    ->required()
-                    ->numeric()
-                    ->prefix('Rp'),
+                Section::make([
+                    TextInput::make('price')
+                        ->label('Harga Layanan')
+                        ->required()
+                        ->numeric()
+                        ->prefix('Rp'),
+                    TextInput::make('member_price')
+                        ->label('Harga Member')
+                        ->required()
+                        ->numeric()
+                        ->prefix('Rp'),
+                    TextInput::make('package_price')
+                        ->label('Harga Paket')
+                        ->required()
+                        ->numeric()
+                        ->prefix('Rp'),
+                ])->columnSpanFull()->columns(3),
+
                 TextInput::make('duration')
                     ->label('Durasi (menit)')
                     ->numeric(),
