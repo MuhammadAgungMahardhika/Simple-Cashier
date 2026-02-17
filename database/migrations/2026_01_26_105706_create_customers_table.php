@@ -19,7 +19,10 @@ return new class extends Migration
             $table->string('email')->unique()->nullable();
             $table->string('address')->nullable();
 
-            $table->boolean('is_member')->default(false);
+            $table->date('member_started_at')->nullable();
+            $table->date('member_expired_at')->nullable();
+            $table->decimal('price', 10, 2)->nullable();
+
             $table->string('created_by')->nullable();
             $table->string('updated_by')->nullable();
             $table->timestamps();

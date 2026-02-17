@@ -10,6 +10,10 @@ class Customer extends Model
 {
     //
     use Blameable;
+    protected $casts = [
+        'member_started_at' => 'date',
+        'member_expired_at' => 'date',
+    ];
     protected static function boot()
     {
         parent::boot();
@@ -39,6 +43,11 @@ class Customer extends Model
         return "{$date}{$year}-{$nextNumber}";
     }
 
+    public function getIsMemberAttribute(): bool
+    {
+        return $this->member_expired_at
+            && now()->lte($this->member_expired_at);
+    }
     public function transactions()
     {
         return $this->hasMany(Transaction::class);
