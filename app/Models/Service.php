@@ -11,7 +11,10 @@ class Service extends Model
     /** @use HasFactory<\Database\Factories\ServiceFactory> */
     use HasFactory;
     use Blameable;
-
+    public function package()
+    {
+        return $this->belongsToMany(Package::class, 'package_details');
+    }
     public function packageDetails()
     {
         return $this->hasMany(PackageDetail::class);

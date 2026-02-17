@@ -29,6 +29,11 @@ return new class extends Migration
                 ->on('transactions')
                 ->onUpdate('cascade')
                 ->onDelete('cascade');
+            $table->foreign('package_id', 'fk_transaction_detail_package')
+                ->references('id')
+                ->on('packages')
+                ->onUpdate('cascade')
+                ->onDelete('set null');
             $table->foreign('service_id', 'fk_transaction_detail_service')
                 ->references('id')
                 ->on('services')

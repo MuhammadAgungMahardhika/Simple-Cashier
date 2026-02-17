@@ -23,13 +23,14 @@ class ServiceSeeder extends Seeder
             foreach ($csvData as $row) {
                 DB::table('services')->insert([
                     'service_group_id' => $row[0],
-                    'name' => $row[1],
-                    'price' => $row[2],
-                    'member_price' => $row[3],
-                    'package_price' => $row[4],
-                    'member_package_price' => $row[5],
-                    'fee' => $row[6],
-                    'member_fee' => $row[7],
+                    'code' => $row[1],
+                    'name' => $row[2],
+                    'price' => $row[3],
+                    'member_price' => $row[4],
+                    'package_price' => $row[5],
+                    'member_package_price' => $row[6],
+                    'fee' => $row[7],
+                    'member_fee' => $row[8],
                 ]);
             }
         }

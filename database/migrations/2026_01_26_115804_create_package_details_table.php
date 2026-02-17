@@ -15,7 +15,6 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('package_id');
             $table->unsignedBigInteger('service_id')->nullable();
-            $table->integer('quantity')->default(1);
             $table->timestamps();
         });
     }

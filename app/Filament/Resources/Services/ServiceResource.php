@@ -48,6 +48,22 @@ class ServiceResource extends Resource
                     ->searchable()
                     ->preload()
                     ->required(),
+                TextInput::make('code')
+                    ->label('Kode Layanan')
+                    ->required()
+                    ->disabled()
+                    ->dehydrated() // tetap tersimpan walau disabled
+                    ->default(function () {
+                        $lastCode = \App\Models\Service::max('code');
+
+                        if (!$lastCode) {
+                            return '101';
+                        }
+
+                        $nextNumber = (int) $lastCode + 1;
+
+                        return str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+                    }),
                 TextInput::make('name')
                     ->label('Nama Layanan')
                     ->required(),
@@ -112,6 +128,11 @@ class ServiceResource extends Resource
                 Group::make('serviceGroup.name')->label('Group')->collapsible()->titlePrefixedWithLabel(false),
             ])
             ->columns([
+                TextColumn::make('code')
+                    ->label('Kode Layanan')
+                    ->sortable()
+                    ->alignEnd()
+                    ->searchable(),
                 TextColumn::make('name')
                     ->label('Nama Layanan')
                     ->searchable(),

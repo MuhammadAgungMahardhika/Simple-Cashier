@@ -18,17 +18,21 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
+use Filament\Forms\Components\Repeater\TableColumn;
+
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use UnitEnum;
 
 class PackageResource extends Resource
 {
     protected static ?string $model = Package::class;
-
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static ?string $navigationLabel = 'Paket';
+    protected static ?string $label = 'Paket';
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::RectangleGroup;
 
     protected static ?string $recordTitleAttribute = 'name';
 
@@ -42,95 +46,25 @@ class PackageResource extends Resource
                         TextInput::make('name')
                             ->label('Nama Paket')
                             ->required()
-                            ->maxLength(255)
-                            ->columnSpanFull(),
-
-                        Textarea::make('description')
-                            ->label('Deskripsi')
-                            ->required()
-                            ->rows(3)
-                            ->columnSpanFull(),
-
-                        TextInput::make('package_price')
-                            ->label('Harga Paket')
-                            ->required()
-                            ->numeric()
-                            ->prefix('Rp')
-                            ->minValue(0)
-                            ->live(onBlur: true)
-                            ->helperText('Harga total untuk paket ini'),
-
+                            ->maxLength(255),
                         Toggle::make('is_active')
                             ->label('Aktif')
                             ->default(true)
                             ->required(),
+                        Textarea::make('description')
+                            ->label('Deskripsi')
+                            ->rows(3)
+                            ->columnSpanFull(),
                     ])
-                    ->columns(2),
+                    ->columns(2)->columnSpanFull(),
 
-                Section::make('Layanan dalam Paket')
-                    ->schema([
-                        Repeater::make('packageDetails')
-                            ->relationship()
-                            ->schema([
-                                Select::make('service_id')
-                                    ->label('Layanan')
-                                    ->relationship('service', 'name')
-                                    ->searchable()
-                                    ->preload()
-                                    ->required()
-                                    ->distinct()
-                                    ->disableOptionWhen(function ($value, $state, Get $get) {
-                                        // Disable service yang sudah dipilih di row lain
-                                        $selectedServices = collect($get('../../packageDetails'))
-                                            ->pluck('service_id')
-                                            ->filter()
-                                            ->toArray();
-
-                                        return in_array($value, $selectedServices) && $value != $state;
-                                    })
-                                    ->live()
-                                    ->afterStateUpdated(function ($state, Set $set) {
-                                        if ($state) {
-                                            $service = \App\Models\Service::find($state);
-                                            if ($service) {
-                                                // Optional: auto-fill service name untuk informasi
-                                                $set('service_name_display', $service->name);
-                                            }
-                                        }
-                                    })
-                                    ->columnSpan(2),
-
-                                TextInput::make('quantity')
-                                    ->label('Jumlah')
-                                    ->numeric()
-                                    ->minValue(1)
-                                    ->default(1)
-                                    ->required()
-                                    ->columnSpan(1),
-
-                                // Hidden field untuk display (optional)
-                                TextInput::make('service_name_display')
-                                    ->label('Info Layanan')
-                                    ->disabled()
-                                    ->dehydrated(false)
-                                    ->visible(false),
-                            ])
-                            ->columns(3)
-                            ->defaultItems(1)
-                            ->addActionLabel('Tambah Layanan')
-                            ->reorderable()
-                            ->collapsible()
-                            ->itemLabel(
-                                fn(array $state): ?string =>
-                                $state['service_id']
-                                    ? \App\Models\Service::find($state['service_id'])?->name . ' (x' . ($state['quantity'] ?? 1) . ')'
-                                    : null
-                            )
-                            ->live()
-                            ->columnSpanFull()
-                            ->minItems(1)
-                            ->helperText('Tambahkan layanan-layanan yang termasuk dalam paket ini'),
-                    ]),
+                Select::make('services')
+                    ->label('Layanan dalam Paket')
+                    ->relationship('services', 'code_name')
+                    ->multiple()
+                    ->preload()
+                    ->columnSpanFull()
+                    ->required(),
             ]);
     }
 
@@ -140,10 +74,30 @@ class PackageResource extends Resource
             ->recordTitleAttribute('name')
             ->columns([
                 TextColumn::make('name')
+                    ->label('Nama Paket')
                     ->searchable(),
+
+                TextColumn::make('services.code_name')
+                    ->label('Layanan dalam Paket')
+                    ->listWithLineBreaks()
+                    ->badge()
+                    ->limit(100)
+                    ->searchable(),
+                TextColumn::make('total_package_price')
+                    ->label('Total Harga Umum')
+                    ->alignEnd()
+                    ->money('IDR'),
+
+                TextColumn::make('total_member_package_price')
+                    ->label('Total Harga Member')
+                    ->alignEnd()
+                    ->money('IDR'),
                 TextColumn::make('description')
+                    ->label('Deskripsi')
+                    ->limit(50)
                     ->searchable(),
                 IconColumn::make('is_active')
+                    ->label('Aktif?')
                     ->boolean(),
                 TextColumn::make('created_by')
                     ->searchable(),

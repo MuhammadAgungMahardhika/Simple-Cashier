@@ -14,7 +14,9 @@ return new class extends Migration
         Schema::create('services', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('service_group_id')->nullable();
+            $table->integer('code')->unique();
             $table->string('name');
+            $table->string('code_name')->virtualAs('concat(code, \' - \', name)');
             $table->decimal('price', 10, 2);
             $table->decimal('member_price', 10, 2);
             $table->decimal('package_price', 10, 2);

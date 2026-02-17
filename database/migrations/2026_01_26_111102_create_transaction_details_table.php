@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('transaction_id');
             $table->unsignedBigInteger('service_id')->nullable();
+            $table->unsignedBigInteger('package_id')->nullable();
             $table->unsignedBigInteger('therapist_id')->nullable();
             $table->enum('item_type', ['normal', 'member', 'package']);
             $table->string('item_name');
