@@ -24,6 +24,9 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Enums\FiltersLayout;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
 use UnitEnum;
 
@@ -39,12 +42,21 @@ class ServiceResource extends Resource
     {
         return $schema
             ->components([
+                Select::make('service_group_id')
+                    ->label('Grup Layanan')
+                    ->relationship('serviceGroup', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->required(),
                 TextInput::make('name')
                     ->label('Nama Layanan')
                     ->required(),
+                TextInput::make('duration')
+                    ->label('Durasi (menit)')
+                    ->numeric(),
                 Section::make([
                     TextInput::make('price')
-                        ->label('Harga Layanan')
+                        ->label('Harga Umum')
                         ->required()
                         ->numeric()
                         ->prefix('Rp'),
@@ -54,15 +66,31 @@ class ServiceResource extends Resource
                         ->numeric()
                         ->prefix('Rp'),
                     TextInput::make('package_price')
-                        ->label('Harga Paket')
+                        ->label('Harga Paket Umum')
                         ->required()
                         ->numeric()
                         ->prefix('Rp'),
-                ])->columnSpanFull()->columns(3),
+                    TextInput::make('member_package_price')
+                        ->label('Harga Paket Member')
+                        ->required()
+                        ->numeric()
+                        ->prefix('Rp'),
+                ])->columnSpanFull()->columns(4)->heading('Harga Layanan'),
+                Section::make([
+                    TextInput::make('fee')
+                        ->label('Fee Umum')
+                        ->required()
+                        ->numeric()
+                        ->prefix('Rp'),
 
-                TextInput::make('duration')
-                    ->label('Durasi (menit)')
-                    ->numeric(),
+                    TextInput::make('member_fee')
+                        ->label('Fee Member')
+                        ->required()
+                        ->numeric()
+                        ->prefix('Rp'),
+
+                ])->columnSpanFull()->columns(2)->heading('Fee Layanan'),
+
                 Toggle::make('is_active')
                     ->label('Aktif?')
                     ->default(true)
@@ -71,37 +99,6 @@ class ServiceResource extends Resource
                     ->label('Deskripsi Layanan')
                     ->columnSpanFull(),
 
-                Radio::make('type')
-                    ->label('Tipe Fee')
-                    ->options([
-                        'percentage' => 'Percentage',
-                        'fixed' => 'Fixed',
-                    ])
-                    ->required()
-                    ->reactive(),
-
-                TextInput::make('fee')
-                    ->label('Fee Layanan')
-                    ->required()
-                    ->numeric()
-                    ->reactive()
-                    ->rules(fn(Get $get) => match ($get('type')) {
-                        'percentage' => ['min:1', 'max:100'],
-                        'fixed' => ['min:1'],
-                        default => [],
-                    })
-                    ->helperText(
-                        fn(Get $get) =>
-                        $get('type') === 'percentage'
-                            ? 'Masukkan angka 1–100'
-                            : 'Masukkan nominal rupiah'
-                    )
-                    ->suffix(
-                        fn(Get $get) =>
-                        $get('type') === 'percentage'
-                            ? '%'
-                            : 'Rp'
-                    ),
 
             ]);
     }
@@ -109,6 +106,11 @@ class ServiceResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('created_at', 'desc')
+            ->defaultGroup('serviceGroup.name')
+            ->groups([
+                Group::make('serviceGroup.name')->label('Group')->collapsible()->titlePrefixedWithLabel(false),
+            ])
             ->columns([
                 TextColumn::make('name')
                     ->label('Nama Layanan')
@@ -119,22 +121,37 @@ class ServiceResource extends Resource
                     ->alignEnd()
                     ->sortable(),
                 TextColumn::make('price')
-                    ->label('Harga Layanan')
+                    ->label('Harga Umum')
                     ->alignEnd()
                     ->money('idr')
                     ->sortable(),
-                TextColumn::make('type')
-                    ->label('Tipe Fee')
-                    ->badge()
-                    ->formatStateUsing(fn($state) => ucfirst($state))
-                    ->color(fn($state) => match ($state) {
-                        'percentage' => 'warning',
-                        'fixed' => 'success',
-                        default => 'gray',
-                    }),
+                TextColumn::make('member_price')
+                    ->label('Harga Member')
+                    ->alignEnd()
+                    ->money('idr')
+                    ->sortable(),
+                TextColumn::make('package_price')
+                    ->label('Harga Paket Umum')
+                    ->alignEnd()
+                    ->money('idr')
+                    ->sortable(),
+                TextColumn::make('member_package_price')
+                    ->label('Harga Paket Member')
+                    ->alignEnd()
+                    ->money('idr')
+                    ->sortable(),
 
                 TextColumn::make('fee')
                     ->label('Fee Layanan')
+                    ->alignEnd()
+                    ->sortable()
+                    ->formatStateUsing(function ($state, $record) {
+                        return $record->type === 'percentage'
+                            ? "{$state}%"
+                            : 'Rp ' . number_format($state, 0, ',', '.');
+                    }),
+                TextColumn::make('member_fee')
+                    ->label('Fee Member Layanan')
                     ->alignEnd()
                     ->sortable()
                     ->formatStateUsing(function ($state, $record) {
@@ -159,8 +176,18 @@ class ServiceResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
-            ])
+                SelectFilter::make('service_group_id')
+                    ->label('Grup Layanan')
+                    ->relationship('serviceGroup', 'name')
+                    ->searchable()
+                    ->preload(),
+                SelectFilter::make('is_active')
+                    ->label('Aktif?')
+                    ->options([
+                        1 => 'Ya',
+                        0 => 'Tidak',
+                    ]),
+            ], layout: FiltersLayout::AboveContent)
             ->recordActions([
                 ViewAction::make(),
                 EditAction::make(),

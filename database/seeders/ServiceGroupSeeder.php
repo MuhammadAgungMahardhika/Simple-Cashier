@@ -7,29 +7,22 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 
-class ServiceSeeder extends Seeder
+class ServiceGroupSeeder extends Seeder
 {
     /**
      * Run the database seeds.
      */
     public function run(): void
-    {
-        $csvFile = database_path('/csv/services.csv');
+    {  // Path ke file CSV
+        $csvFile = database_path('/csv/service_groups.csv');
 
         // Buka file CSV
         if (File::exists($csvFile)) {
             // Baca file CSV
             $csvData = array_map('str_getcsv', file($csvFile));
             foreach ($csvData as $row) {
-                DB::table('services')->insert([
-                    'service_group_id' => $row[0],
-                    'name' => $row[1],
-                    'price' => $row[2],
-                    'member_price' => $row[3],
-                    'package_price' => $row[4],
-                    'member_package_price' => $row[5],
-                    'fee' => $row[6],
-                    'member_fee' => $row[7],
+                DB::table('service_groups')->insert([
+                    'name' => $row[0],
                 ]);
             }
         }

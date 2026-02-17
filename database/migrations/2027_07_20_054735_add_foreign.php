@@ -36,6 +36,15 @@ return new class extends Migration
                 ->onDelete('set null');
         });
 
+        Schema::table('services', function (Blueprint $table) {
+            $table->foreign('service_group_id', 'fk_service_service_group')
+                ->references('id')
+                ->on('service_groups')
+                ->onUpdate('cascade')
+                ->onDelete('set null');
+        });
+
+
         Schema::table('package_details', function (Blueprint $table) {
             $table->foreign('package_id', 'fk_package_detail_package')
                 ->references('id')

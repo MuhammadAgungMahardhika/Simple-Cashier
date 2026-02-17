@@ -11,21 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('services', function (Blueprint $table) {
+        Schema::create('service_groups', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('service_group_id')->nullable();
             $table->string('name');
-            $table->decimal('price', 10, 2);
-            $table->decimal('member_price', 10, 2);
-            $table->decimal('package_price', 10, 2);
-            $table->decimal('member_package_price', 10, 2);
-            $table->decimal('fee', 10, 2)->nullable();
-            $table->decimal('member_fee', 10, 2)->nullable();
-
             $table->text('description')->nullable();
-            $table->integer('duration')->nullable();
 
-            $table->boolean('is_active')->default(true);
             $table->string('created_by')->nullable();
             $table->string('updated_by')->nullable();
             $table->timestamps();
@@ -37,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('services');
+        Schema::dropIfExists('service_groups');
     }
 };

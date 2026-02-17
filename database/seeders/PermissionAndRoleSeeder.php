@@ -39,6 +39,13 @@ class PermissionAndRoleSeeder extends Seeder
             'delete-customer',
         ];
 
+        $serviceGroupPermissions = [
+            'view-any-service-group',
+            'view-service-group',
+            'create-service-group',
+            'update-service-group',
+            'delete-service-group',
+        ];
         $servicePermissions = [
             'view-any-service',
             'view-service',
@@ -86,6 +93,7 @@ class PermissionAndRoleSeeder extends Seeder
             $userPermissions,
             $rolePermissions,
             $customerPermissions,
+            $serviceGroupPermissions,
             $servicePermissions,
             $transactionPermissions,
             $packagePermissions,
@@ -103,6 +111,7 @@ class PermissionAndRoleSeeder extends Seeder
             'admin' => array_merge(
                 $userPermissions,
                 $customerPermissions,
+                $serviceGroupPermissions,
                 $servicePermissions,
                 $transactionPermissions,
                 $packagePermissions,
@@ -115,6 +124,9 @@ class PermissionAndRoleSeeder extends Seeder
                 'create-customer',
                 'update-customer',
                 'delete-customer',
+
+                'view-any-service-group',
+                'view-service-group',
 
                 'view-any-service',
                 'view-service',

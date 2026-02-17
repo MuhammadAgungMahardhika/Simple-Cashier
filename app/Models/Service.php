@@ -16,6 +16,10 @@ class Service extends Model
     {
         return $this->hasMany(PackageDetail::class);
     }
+    public function serviceGroup()
+    {
+        return $this->belongsTo(ServiceGroup::class);
+    }
     public function transactionDetails()
     {
         return $this->hasMany(TransactionDetail::class);
