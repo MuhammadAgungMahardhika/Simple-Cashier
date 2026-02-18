@@ -50,43 +50,23 @@ class TransactionResource extends Resource
     // HELPERS
     // =========================================================================
 
-    /**
-     * Cek apakah customer adalah member aktif berdasarkan member_expired_at.
-     * Member aktif = member_expired_at tidak null DAN >= hari ini.
-     */
     protected static function isCustomerMember(?int $customerId): bool
     {
-        if (!$customerId) {
-            return false;
-        }
+        if (!$customerId) return false;
 
         $customer = Customer::find($customerId);
 
-        if (!$customer || !$customer->member_expired_at) {
-            return false;
-        }
+        if (!$customer || !$customer->member_expired_at) return false;
 
         return \Carbon\Carbon::parse($customer->member_expired_at)->gte(now()->startOfDay());
     }
 
-    /**
-     * Tentukan item_type otomatis:
-     * - via paket  → 'package'
-     * - member     → 'member'
-     * - default    → 'normal'
-     */
     protected static function resolveItemType(bool $isMember, bool $isPackage): string
     {
-        if ($isPackage) {
-            return 'package';
-        }
-
+        if ($isPackage) return 'package';
         return $isMember ? 'member' : 'normal';
     }
 
-    /**
-     * Hitung harga & fee berdasarkan item_type dan status member.
-     */
     protected static function resolvePrice(Service $service, string $itemType, bool $isMember): array
     {
         return match ($itemType) {
@@ -102,7 +82,7 @@ class TransactionResource extends Resource
                     ? ($service->member_fee ?? 0)
                     : ($service->fee ?? 0)),
             ],
-            default   => [ // 'normal'
+            default => [
                 'price'      => (float) $service->price,
                 'fee_amount' => (float) ($service->fee ?? 0),
             ],
@@ -110,12 +90,21 @@ class TransactionResource extends Resource
     }
 
     /**
-     * Hitung ulang total transaksi dari semua detail.
+     * Hitung ulang total dari ROOT form.
+     *
+     * Selalu dipanggil dengan $get & $set yang sudah di-scope ke ROOT.
+     * Dari dalam repeater: gunakan recalculateTotalsFromRow().
+     *
+     * Sum pakai price * quantity agar tidak bergantung pada field `subtotal`
+     * yang mungkin belum ter-commit ke state saat fungsi ini dipanggil.
      */
     protected static function recalculateTotals(Get $get, Set $set): void
     {
         $details  = collect($get('transactionDetails') ?? []);
-        $subtotal = $details->sum(fn($item) => (float) ($item['subtotal'] ?? 0));
+
+        $subtotal = $details->sum(
+            fn($item) => (float) ($item['price'] ?? 0) * max(1, (int) ($item['quantity'] ?? 1))
+        );
 
         $set('subtotal',              $subtotal);
         $set('total_before_discount', $subtotal);
@@ -137,8 +126,63 @@ class TransactionResource extends Resource
     }
 
     /**
-     * Buat satu row data untuk repeater dari sebuah service.
+     * Versi recalculate yang dipanggil dari DALAM repeater row.
+     *
+     * Masalah: dari dalam row, $get('transactionDetails') tidak bisa diakses.
+     * Path yang benar adalah $get('../../transactionDetails').
+     *
+     * Selain itu, row yang sedang diedit belum tentu ter-commit ke state
+     * sehingga kita inject nilai price & qty row tersebut secara eksplisit
+     * via $currentPrice & $currentQty.
+     *
+     * Cara kerja:
+     * 1. Baca semua rows via path ../../transactionDetails
+     * 2. Sum price * qty dari semua row (state lama)
+     * 3. Koreksi dengan mengurangi subtotal row aktif (state lama) lalu
+     *    menambah subtotal row aktif yang baru ($currentPrice * $currentQty)
+     *
+     * Ini tidak butuh $uuid dan tidak ada injection yang tidak bisa di-resolve.
      */
+    protected static function recalculateTotalsFromRow(
+        Get   $get,
+        Set   $set,
+        float $currentPrice,
+        int   $currentQty
+    ): void {
+        $details = collect($get('../../transactionDetails') ?? []);
+
+        // Sum semua rows dari state (termasuk row yang sedang diedit — nilainya masih lama)
+        $subtotalFromState = $details->sum(
+            fn($item) => (float) ($item['price'] ?? 0) * max(1, (int) ($item['quantity'] ?? 1))
+        );
+
+        // Koreksi: kurangi kontribusi row aktif dari state, tambah nilai barunya
+        $oldRowPrice = (float) ($get('price') ?? 0);
+        $oldRowQty   = max(1, (int) ($get('quantity') ?? 1));
+
+        $subtotal = $subtotalFromState
+            - ($oldRowPrice * $oldRowQty)   // hapus nilai lama row ini
+            + ($currentPrice * $currentQty); // tambah nilai baru row ini
+
+        $set('../../subtotal',              $subtotal);
+        $set('../../total_before_discount', $subtotal);
+
+        $discountId     = $get('../../discount_id');
+        $discountAmount = 0;
+
+        if ($discountId) {
+            $discount = Discount::find($discountId);
+            if ($discount) {
+                $discountAmount = $discount->type === 'percentage'
+                    ? $subtotal * ($discount->value / 100)
+                    : (float) $discount->value;
+            }
+        }
+
+        $set('../../discount_amount',      $discountAmount);
+        $set('../../total_after_discount', $subtotal - $discountAmount);
+    }
+
     protected static function buildDetailRow(
         Service $service,
         string  $itemType,
@@ -170,7 +214,6 @@ class TransactionResource extends Resource
     {
         return $schema->components([
 
-            // ── Hidden system fields ──────────────────────────────────────────
             Hidden::make('transaction_code')
                 ->default(fn() => 'TRX-' . date('Ymd') . '-' . strtoupper(uniqid()))
                 ->dehydrated(),
@@ -210,8 +253,7 @@ class TransactionResource extends Resource
                         : '🔴 Member sudah expired sejak ' . $expired->format('d/m/Y');
                 })
                 ->afterStateUpdated(function (Get $get, Set $set) {
-                    // Ketika customer berganti, harga semua detail dihitung ulang
-                    // karena status member bisa berbeda.
+                    // Rebuild semua row harga sesuai status member customer baru
                     $customerId = $get('customer_id');
                     $isMember   = static::isCustomerMember($customerId);
                     $details    = $get('transactionDetails') ?? [];
@@ -247,6 +289,8 @@ class TransactionResource extends Resource
                     }
 
                     $set('transactionDetails', $updated);
+
+                    // Dipanggil dari ROOT — pakai recalculateTotals biasa
                     static::recalculateTotals($get, $set);
                 })
                 ->createOptionForm([
@@ -269,13 +313,11 @@ class TransactionResource extends Resource
                 ])
                 ->editOptionModalHeading('Ubah Data Pelanggan'),
 
-            // ── Tombol pilih paket (di luar repeater) ─────────────────────────
-            // Diletakkan di atas repeater agar UX lebih jelas:
-            // "Pilih paket" → auto-expand rows → baru assign terapis per row.
+            // ── Pilih Paket ───────────────────────────────────────────────────
             Section::make('Tambah dari Paket')
                 ->description('Pilih paket untuk menambahkan semua layanan dalam paket sekaligus ke detail transaksi.')
                 ->schema([
-                    Select::make('_package_picker')   // underscore = tidak disimpan ke DB
+                    Select::make('_package_picker')
                         ->label('Pilih Paket')
                         ->options(
                             Package::where('is_active', true)
@@ -286,7 +328,7 @@ class TransactionResource extends Resource
                         ->nullable()
                         ->placeholder('— Pilih paket untuk expand —')
                         ->live()
-                        ->dehydrated(false)           // tidak disimpan
+                        ->dehydrated(false)
                         ->afterStateUpdated(function ($state, Get $get, Set $set) {
                             if (!$state) return;
 
@@ -300,7 +342,6 @@ class TransactionResource extends Resource
                                 ->values()
                                 ->toArray();
 
-                            // Buat rows baru dari setiap service dalam paket
                             $newRows = [];
                             foreach ($package->packageDetails as $detail) {
                                 $service = $detail->service;
@@ -316,10 +357,9 @@ class TransactionResource extends Resource
                             }
 
                             $set('transactionDetails', array_merge($currentRows, $newRows));
-
-                            // Reset picker agar bisa dipilih lagi
                             $set('_package_picker', null);
 
+                            // Dipanggil dari ROOT
                             static::recalculateTotals($get, $set);
                         }),
                 ])
@@ -340,7 +380,6 @@ class TransactionResource extends Resource
                 ])
                 ->schema([
 
-                    // -- Tipe (otomatis, readonly) ---------------------------------
                     TextInput::make('item_type')
                         ->label('Tipe')
                         ->disabled()
@@ -348,7 +387,6 @@ class TransactionResource extends Resource
                         ->default('normal')
                         ->columnSpan(1),
 
-                    // -- Service ---------------------------------------------------
                     Select::make('service_id')
                         ->label('Layanan')
                         ->options(
@@ -365,7 +403,8 @@ class TransactionResource extends Resource
                                 $set('price',      0);
                                 $set('fee_amount', 0);
                                 $set('subtotal',   0);
-                                static::recalculateTotals($get, $set);
+                                // Row ini price=0, qty apapun → subtotal 0
+                                static::recalculateTotalsFromRow($get, $set, 0, 1);
                                 return;
                             }
 
@@ -374,8 +413,6 @@ class TransactionResource extends Resource
 
                             $customerId = $get('../../customer_id');
                             $isMember   = static::isCustomerMember($customerId);
-                            // Jika row ini sudah punya package_id (dari expand paket),
-                            // pertahankan sebagai package. Jika tidak, tentukan dari member status.
                             $packageId  = $get('package_id');
                             $itemType   = static::resolveItemType($isMember, !is_null($packageId));
                             $qty        = max(1, (int) ($get('quantity') ?? 1));
@@ -389,14 +426,13 @@ class TransactionResource extends Resource
                             $set('fee_amount', $fee);
                             $set('subtotal',   $price * $qty);
 
-                            static::recalculateTotals($get, $set);
+                            // Inject price & qty baru agar koreksi akurat
+                            static::recalculateTotalsFromRow($get, $set, $price, $qty);
                         })
                         ->columnSpan(2),
 
-                    // -- Hidden: package_id (diisi saat expand paket) --------------
                     Hidden::make('package_id')->dehydrated(),
 
-                    // -- Terapis ---------------------------------------------------
                     Select::make('therapist_id')
                         ->label('Terapis')
                         ->relationship('therapist', 'name')
@@ -405,11 +441,9 @@ class TransactionResource extends Resource
                         ->nullable()
                         ->columnSpan(2),
 
-                    // -- Hidden fields --------------------------------------------
                     Hidden::make('item_name')->dehydrated(),
                     Hidden::make('fee_amount')->dehydrated()->default(0),
 
-                    // -- Quantity --------------------------------------------------
                     TextInput::make('quantity')
                         ->label('Qty')
                         ->numeric()
@@ -420,12 +454,14 @@ class TransactionResource extends Resource
                         ->afterStateUpdated(function ($state, Get $get, Set $set) {
                             $price = (float) ($get('price') ?? 0);
                             $qty   = max(1, (int) $state);
+
                             $set('subtotal', $price * $qty);
-                            static::recalculateTotals($get, $set);
+
+                            // Inject price (sudah benar di state) & qty baru
+                            static::recalculateTotalsFromRow($get, $set, $price, $qty);
                         })
                         ->columnSpan(1),
 
-                    // -- Harga (readonly, otomatis) --------------------------------
                     TextInput::make('price')
                         ->label('Harga')
                         ->numeric()
@@ -435,7 +471,6 @@ class TransactionResource extends Resource
                         ->required()
                         ->columnSpan(1),
 
-                    // -- Subtotal (readonly, otomatis) -----------------------------
                     TextInput::make('subtotal')
                         ->label('Subtotal')
                         ->numeric()
@@ -450,6 +485,7 @@ class TransactionResource extends Resource
                 ->addActionLabel('Tambah Layanan')
                 ->deleteAction(
                     fn($action) => $action->after(function (Get $get, Set $set) {
+                        // Delete dipanggil dari ROOT scope repeater
                         static::recalculateTotals($get, $set);
                     })
                 )
@@ -478,6 +514,7 @@ class TransactionResource extends Resource
                         ->nullable()
                         ->live()
                         ->afterStateUpdated(function (Get $get, Set $set) {
+                            // Dipanggil dari ROOT
                             static::recalculateTotals($get, $set);
                         }),
 
@@ -497,14 +534,9 @@ class TransactionResource extends Resource
                         ->numeric()
                         ->default(0)
                         ->extraAttributes(['class' => 'text-xl font-bold']),
-
-                    Hidden::make('subtotal')
-                        ->dehydrated()
-                        ->default(0),
                 ])
                 ->columnSpanFull(),
 
-            // ── Metode Pembayaran ─────────────────────────────────────────────
             Radio::make('payment_method')
                 ->label('Metode Pembayaran')
                 ->options([
