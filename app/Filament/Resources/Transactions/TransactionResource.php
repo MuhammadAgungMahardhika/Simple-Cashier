@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Transactions;
 use App\Filament\Resources\TransactionResource\Actions\PrintReceiptAction;
 use App\Filament\Resources\Transactions\Actions\TransactionActions;
 use App\Filament\Resources\Transactions\Pages\ManageTransactions;
+use App\Models\Customer;
 use App\Models\Discount;
 use App\Models\Enums\TransactionStatusEnum;
 use App\Models\Package;
@@ -13,7 +14,6 @@ use App\Models\Transaction;
 use BackedEnum;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
@@ -51,8 +51,8 @@ class TransactionResource extends Resource
     // =========================================================================
 
     /**
-     * Tentukan apakah customer saat ini adalah member.
-     * Sesuaikan logika ini dengan field/relasi di model Customer Anda.
+     * Cek apakah customer adalah member aktif berdasarkan member_expired_at.
+     * Member aktif = member_expired_at tidak null DAN >= hari ini.
      */
     protected static function isCustomerMember(?int $customerId): bool
     {
@@ -60,14 +60,32 @@ class TransactionResource extends Resource
             return false;
         }
 
-        // Sesuaikan dengan kondisi "member" di model Customer Anda.
-        // Contoh: customer punya kolom `is_member` atau relasi membership aktif.
-        $customer = \App\Models\Customer::find($customerId);
-        return $customer?->is_member ?? false;
+        $customer = Customer::find($customerId);
+
+        if (!$customer || !$customer->member_expired_at) {
+            return false;
+        }
+
+        return \Carbon\Carbon::parse($customer->member_expired_at)->gte(now()->startOfDay());
     }
 
     /**
-     * Hitung harga yang tepat berdasarkan item_type dan status member customer.
+     * Tentukan item_type otomatis:
+     * - via paket  → 'package'
+     * - member     → 'member'
+     * - default    → 'normal'
+     */
+    protected static function resolveItemType(bool $isMember, bool $isPackage): string
+    {
+        if ($isPackage) {
+            return 'package';
+        }
+
+        return $isMember ? 'member' : 'normal';
+    }
+
+    /**
+     * Hitung harga & fee berdasarkan item_type dan status member.
      */
     protected static function resolvePrice(Service $service, string $itemType, bool $isMember): array
     {
@@ -80,7 +98,9 @@ class TransactionResource extends Resource
                 'price'      => $isMember
                     ? (float) $service->member_package_price
                     : (float) $service->package_price,
-                'fee_amount' => (float) ($isMember ? ($service->member_fee ?? 0) : ($service->fee ?? 0)),
+                'fee_amount' => (float) ($isMember
+                    ? ($service->member_fee ?? 0)
+                    : ($service->fee ?? 0)),
             ],
             default   => [ // 'normal'
                 'price'      => (float) $service->price,
@@ -90,13 +110,12 @@ class TransactionResource extends Resource
     }
 
     /**
-     * Recalculate totals (total_before_discount, discount_amount, total_after_discount).
-     * Dapat dipanggil dari mana saja dalam form.
+     * Hitung ulang total transaksi dari semua detail.
      */
     protected static function recalculateTotals(Get $get, Set $set): void
     {
-        $details       = collect($get('transactionDetails') ?? []);
-        $subtotal      = $details->sum(fn($item) => (float) ($item['subtotal'] ?? 0));
+        $details  = collect($get('transactionDetails') ?? []);
+        $subtotal = $details->sum(fn($item) => (float) ($item['subtotal'] ?? 0));
 
         $set('subtotal',              $subtotal);
         $set('total_before_discount', $subtotal);
@@ -113,8 +132,34 @@ class TransactionResource extends Resource
             }
         }
 
-        $set('discount_amount',       $discountAmount);
-        $set('total_after_discount',  $subtotal - $discountAmount);
+        $set('discount_amount',      $discountAmount);
+        $set('total_after_discount', $subtotal - $discountAmount);
+    }
+
+    /**
+     * Buat satu row data untuk repeater dari sebuah service.
+     */
+    protected static function buildDetailRow(
+        Service $service,
+        string  $itemType,
+        bool    $isMember,
+        int     $qty       = 1,
+        ?int    $packageId = null
+    ): array {
+        ['price' => $price, 'fee_amount' => $fee] =
+            static::resolvePrice($service, $itemType, $isMember);
+
+        return [
+            'service_id'   => $service->id,
+            'package_id'   => $packageId,
+            'therapist_id' => null,
+            'item_type'    => $itemType,
+            'item_name'    => $service->name,
+            'quantity'     => $qty,
+            'price'        => $price,
+            'fee_amount'   => $fee,
+            'subtotal'     => $price * $qty,
+        ];
     }
 
     // =========================================================================
@@ -125,40 +170,89 @@ class TransactionResource extends Resource
     {
         return $schema->components([
 
-            // ── Hidden system fields ─────────────────────────────────────────
+            // ── Hidden system fields ──────────────────────────────────────────
             Hidden::make('transaction_code')
                 ->default(fn() => 'TRX-' . date('Ymd') . '-' . strtoupper(uniqid()))
                 ->dehydrated(),
 
             Hidden::make('transaction_date')
-                ->default(now())
+                ->default(now()->toDateString())
                 ->dehydrated(),
 
             Hidden::make('status')
                 ->default(TransactionStatusEnum::Pending->value)
                 ->dehydrated(),
 
-            // ── Customer ─────────────────────────────────────────────────────
+            // ── Customer ──────────────────────────────────────────────────────
             Select::make('customer_id')
                 ->label('Nama Pelanggan')
                 ->relationship('customer', 'name')
-                ->getOptionLabelFromRecordUsing(fn($record) => "{$record->code} - {$record->name} ({$record->phone})")
+                ->getOptionLabelFromRecordUsing(
+                    fn($record) => "{$record->code} - {$record->name} ({$record->phone})"
+                )
                 ->searchable()
                 ->preload()
                 ->required()
-                ->live()          // live agar perubahan customer bisa mempengaruhi harga
+                ->live()
                 ->columnSpanFull()
+                ->helperText(function (Get $get) {
+                    $customerId = $get('customer_id');
+                    if (!$customerId) return null;
+
+                    $customer = Customer::find($customerId);
+                    if (!$customer || !$customer->member_expired_at) {
+                        return '👤 Customer reguler (bukan member)';
+                    }
+
+                    $expired = \Carbon\Carbon::parse($customer->member_expired_at);
+                    return $expired->gte(now()->startOfDay())
+                        ? '🟢 Member aktif — berlaku hingga ' . $expired->format('d/m/Y')
+                        : '🔴 Member sudah expired sejak ' . $expired->format('d/m/Y');
+                })
                 ->afterStateUpdated(function (Get $get, Set $set) {
-                    // Ketika customer berganti, reset semua detail agar harga dihitung ulang
-                    // sesuai status member customer yang baru.
-                    // Jika ingin mempertahankan item dan hanya update harga, loop details di sini.
+                    // Ketika customer berganti, harga semua detail dihitung ulang
+                    // karena status member bisa berbeda.
+                    $customerId = $get('customer_id');
+                    $isMember   = static::isCustomerMember($customerId);
+                    $details    = $get('transactionDetails') ?? [];
+
+                    $updated = [];
+                    foreach ($details as $key => $row) {
+                        $serviceId = $row['service_id'] ?? null;
+                        $packageId = $row['package_id'] ?? null;
+                        $qty       = max(1, (int) ($row['quantity'] ?? 1));
+
+                        if (!$serviceId) {
+                            $updated[$key] = $row;
+                            continue;
+                        }
+
+                        $service = Service::find($serviceId);
+                        if (!$service) {
+                            $updated[$key] = $row;
+                            continue;
+                        }
+
+                        $itemType = static::resolveItemType($isMember, !is_null($packageId));
+
+                        ['price' => $price, 'fee_amount' => $fee] =
+                            static::resolvePrice($service, $itemType, $isMember);
+
+                        $updated[$key] = array_merge($row, [
+                            'item_type'  => $itemType,
+                            'price'      => $price,
+                            'fee_amount' => $fee,
+                            'subtotal'   => $price * $qty,
+                        ]);
+                    }
+
+                    $set('transactionDetails', $updated);
                     static::recalculateTotals($get, $set);
                 })
                 ->createOptionForm([
                     Grid::make()->columns(2)->schema([
-                        TextInput::make('code')->label('Kode Pelanggan')->readOnly()->visibleOn(['edit'])->required(),
                         TextInput::make('name')->label('Nama Pelanggan')->required(),
-                        TextInput::make('phone')->label('Nomor Telepon/Wa')->tel()->required(),
+                        TextInput::make('phone')->label('Nomor Telepon/WA')->tel()->required(),
                         TextInput::make('email')->label('Email')->email(),
                         Textarea::make('address')->label('Alamat'),
                     ]),
@@ -166,14 +260,71 @@ class TransactionResource extends Resource
                 ->createOptionModalHeading('Tambah Pelanggan Baru')
                 ->editOptionForm([
                     Grid::make()->columns(2)->schema([
-                        TextInput::make('code')->label('Kode Pelanggan')->readOnly()->visibleOn(['edit'])->required(),
+                        TextInput::make('code')->label('Kode Pelanggan')->readOnly()->required(),
                         TextInput::make('name')->label('Nama Pelanggan')->required(),
-                        TextInput::make('phone')->label('Nomor Telepon/Wa')->tel()->required(),
+                        TextInput::make('phone')->label('Nomor Telepon/WA')->tel()->required(),
                         TextInput::make('email')->label('Email')->email(),
                         Textarea::make('address')->label('Alamat'),
                     ]),
                 ])
                 ->editOptionModalHeading('Ubah Data Pelanggan'),
+
+            // ── Tombol pilih paket (di luar repeater) ─────────────────────────
+            // Diletakkan di atas repeater agar UX lebih jelas:
+            // "Pilih paket" → auto-expand rows → baru assign terapis per row.
+            Section::make('Tambah dari Paket')
+                ->description('Pilih paket untuk menambahkan semua layanan dalam paket sekaligus ke detail transaksi.')
+                ->schema([
+                    Select::make('_package_picker')   // underscore = tidak disimpan ke DB
+                        ->label('Pilih Paket')
+                        ->options(
+                            Package::where('is_active', true)
+                                ->orderBy('name')
+                                ->pluck('name', 'id')
+                        )
+                        ->searchable()
+                        ->nullable()
+                        ->placeholder('— Pilih paket untuk expand —')
+                        ->live()
+                        ->dehydrated(false)           // tidak disimpan
+                        ->afterStateUpdated(function ($state, Get $get, Set $set) {
+                            if (!$state) return;
+
+                            $package = Package::with('packageDetails.service')->find($state);
+                            if (!$package) return;
+
+                            $customerId  = $get('customer_id');
+                            $isMember    = static::isCustomerMember($customerId);
+                            $currentRows = collect($get('transactionDetails') ?? [])
+                                ->filter(fn($row) => !empty($row['service_id']))
+                                ->values()
+                                ->toArray();
+
+                            // Buat rows baru dari setiap service dalam paket
+                            $newRows = [];
+                            foreach ($package->packageDetails as $detail) {
+                                $service = $detail->service;
+                                if (!$service || !$service->is_active) continue;
+
+                                $newRows[] = static::buildDetailRow(
+                                    service: $service,
+                                    itemType: 'package',
+                                    isMember: $isMember,
+                                    qty: 1,
+                                    packageId: $package->id,
+                                );
+                            }
+
+                            $set('transactionDetails', array_merge($currentRows, $newRows));
+
+                            // Reset picker agar bisa dipilih lagi
+                            $set('_package_picker', null);
+
+                            static::recalculateTotals($get, $set);
+                        }),
+                ])
+                ->columnSpanFull()
+                ->collapsed(),
 
             // ── Transaction Details (Repeater) ────────────────────────────────
             Repeater::make('transactionDetails')
@@ -181,7 +332,7 @@ class TransactionResource extends Resource
                 ->label('Detail Transaksi')
                 ->table([
                     TableColumn::make('Tipe'),
-                    TableColumn::make('Layanan / Paket'),
+                    TableColumn::make('Layanan'),
                     TableColumn::make('Terapis'),
                     TableColumn::make('Qty'),
                     TableColumn::make('Harga'),
@@ -189,54 +340,50 @@ class TransactionResource extends Resource
                 ])
                 ->schema([
 
-                    // -- Tipe item --------------------------------------------------
-                    Select::make('item_type')
+                    // -- Tipe (otomatis, readonly) ---------------------------------
+                    TextInput::make('item_type')
                         ->label('Tipe')
-                        ->options([
-                            'normal'  => 'Normal',
-                            'member'  => 'Member',
-                            'package' => 'Paket',
-                        ])
+                        ->disabled()
+                        ->dehydrated()
                         ->default('normal')
-                        ->required()
-                        ->live()
-                        ->afterStateUpdated(function ($state, Get $get, Set $set) {
-                            // Reset service/package selection when type changes
-                            $set('service_id', null);
-                            $set('package_id', null);
-                            $set('item_name',  null);
-                            $set('price',      0);
-                            $set('fee_amount', 0);
-                            $set('subtotal',   0);
-                            static::recalculateTotals($get, $set);
-                        })
                         ->columnSpan(1),
 
-                    // -- Service (untuk tipe normal & member) -----------------------
+                    // -- Service ---------------------------------------------------
                     Select::make('service_id')
                         ->label('Layanan')
-                        ->relationship('service', 'name')
+                        ->options(
+                            Service::where('is_active', true)
+                                ->orderBy('name')
+                                ->pluck('name', 'id')
+                        )
                         ->searchable()
-                        ->preload()
                         ->nullable()
                         ->live(onBlur: true)
-                        ->visible(fn(Get $get) => in_array($get('item_type'), ['normal', 'member']))
-                        ->required(fn(Get $get) => in_array($get('item_type'), ['normal', 'member']))
                         ->afterStateUpdated(function ($state, Get $get, Set $set) {
-                            if (!$state) return;
+                            if (!$state) {
+                                $set('item_name',  null);
+                                $set('price',      0);
+                                $set('fee_amount', 0);
+                                $set('subtotal',   0);
+                                static::recalculateTotals($get, $set);
+                                return;
+                            }
 
-                            $service  = Service::find($state);
+                            $service = Service::find($state);
                             if (!$service) return;
 
                             $customerId = $get('../../customer_id');
                             $isMember   = static::isCustomerMember($customerId);
-                            $itemType   = $get('item_type') ?? 'normal';
+                            // Jika row ini sudah punya package_id (dari expand paket),
+                            // pertahankan sebagai package. Jika tidak, tentukan dari member status.
+                            $packageId  = $get('package_id');
+                            $itemType   = static::resolveItemType($isMember, !is_null($packageId));
+                            $qty        = max(1, (int) ($get('quantity') ?? 1));
 
                             ['price' => $price, 'fee_amount' => $fee] =
                                 static::resolvePrice($service, $itemType, $isMember);
 
-                            $qty = max(1, (int) ($get('quantity') ?? 1));
-
+                            $set('item_type',  $itemType);
                             $set('item_name',  $service->name);
                             $set('price',      $price);
                             $set('fee_amount', $fee);
@@ -246,66 +393,23 @@ class TransactionResource extends Resource
                         })
                         ->columnSpan(2),
 
-                    // -- Package (untuk tipe package) -------------------------------
-                    Select::make('package_id')
-                        ->label('Paket')
-                        ->relationship('package', 'name')
-                        ->searchable()
-                        ->preload()
-                        ->nullable()
-                        ->live(onBlur: true)
-                        ->visible(fn(Get $get) => $get('item_type') === 'package')
-                        ->required(fn(Get $get) => $get('item_type') === 'package')
-                        ->afterStateUpdated(function ($state, Get $get, Set $set) {
-                            if (!$state) return;
+                    // -- Hidden: package_id (diisi saat expand paket) --------------
+                    Hidden::make('package_id')->dehydrated(),
 
-                            $package = Package::find($state);
-                            if (!$package) return;
-
-                            // Untuk paket, kita tidak otomatis set price per-item dari service
-                            // karena satu paket bisa berisi banyak service.
-                            // Harga paket diambil dari service pertama dalam paket,
-                            // atau Anda bisa menambahkan kolom `price`/`member_price` di tabel packages.
-                            // Di sini kita set item_name dan biarkan user isi harga manual,
-                            // atau sesuaikan dengan bisnis logic Anda.
-                            $customerId = $get('../../customer_id');
-                            $isMember   = static::isCustomerMember($customerId);
-
-                            // Ambil service pertama dalam paket untuk referensi harga
-                            $firstDetail = $package->packageDetails()->with('service')->first();
-                            $price       = 0;
-                            $fee         = 0;
-
-                            if ($firstDetail?->service) {
-                                ['price' => $price, 'fee_amount' => $fee] =
-                                    static::resolvePrice($firstDetail->service, 'package', $isMember);
-                            }
-
-                            $qty = max(1, (int) ($get('quantity') ?? 1));
-
-                            $set('item_name',  $package->name);
-                            $set('price',      $price);
-                            $set('fee_amount', $fee);
-                            $set('subtotal',   $price * $qty);
-
-                            static::recalculateTotals($get, $set);
-                        })
-                        ->columnSpan(2),
-
-                    // -- Terapis ----------------------------------------------------
+                    // -- Terapis ---------------------------------------------------
                     Select::make('therapist_id')
                         ->label('Terapis')
                         ->relationship('therapist', 'name')
                         ->searchable()
                         ->preload()
                         ->nullable()
-                        ->columnSpan(1),
+                        ->columnSpan(2),
 
-                    // -- Hidden fields ----------------------------------------------
+                    // -- Hidden fields --------------------------------------------
                     Hidden::make('item_name')->dehydrated(),
                     Hidden::make('fee_amount')->dehydrated()->default(0),
 
-                    // -- Quantity ---------------------------------------------------
+                    // -- Quantity --------------------------------------------------
                     TextInput::make('quantity')
                         ->label('Qty')
                         ->numeric()
@@ -314,16 +418,14 @@ class TransactionResource extends Resource
                         ->required()
                         ->live(onBlur: true)
                         ->afterStateUpdated(function ($state, Get $get, Set $set) {
-                            $price    = (float) ($get('price') ?? 0);
-                            $qty      = max(1, (int) $state);
-                            $subtotal = $price * $qty;
-
-                            $set('subtotal', $subtotal);
+                            $price = (float) ($get('price') ?? 0);
+                            $qty   = max(1, (int) $state);
+                            $set('subtotal', $price * $qty);
                             static::recalculateTotals($get, $set);
                         })
                         ->columnSpan(1),
 
-                    // -- Harga (readonly, diisi otomatis) ---------------------------
+                    // -- Harga (readonly, otomatis) --------------------------------
                     TextInput::make('price')
                         ->label('Harga')
                         ->numeric()
@@ -333,7 +435,7 @@ class TransactionResource extends Resource
                         ->required()
                         ->columnSpan(1),
 
-                    // -- Subtotal (readonly, dihitung otomatis) ---------------------
+                    // -- Subtotal (readonly, otomatis) -----------------------------
                     TextInput::make('subtotal')
                         ->label('Subtotal')
                         ->numeric()
@@ -343,9 +445,9 @@ class TransactionResource extends Resource
                         ->required()
                         ->columnSpan(1),
                 ])
-                ->columns(7)
+                ->columns(8)
                 ->defaultItems(1)
-                ->addActionLabel('Tambah Item')
+                ->addActionLabel('Tambah Layanan')
                 ->deleteAction(
                     fn($action) => $action->after(function (Get $get, Set $set) {
                         static::recalculateTotals($get, $set);
@@ -441,11 +543,18 @@ class TransactionResource extends Resource
                     ->label('Pelanggan')
                     ->searchable()
                     ->sortable()
-                    ->limit(25),
+                    ->description(function ($record) {
+                        $exp = $record->customer?->member_expired_at;
+                        if (!$exp) return null;
+
+                        return \Carbon\Carbon::parse($exp)->gte(now()->startOfDay())
+                            ? '🟢 Member s/d ' . \Carbon\Carbon::parse($exp)->format('d/m/Y')
+                            : '🔴 Member expired';
+                    })
+                    ->limit(30),
 
                 TextColumn::make('transactionDetails.item_name')
                     ->label('Item')
-                    ->searchable()
                     ->listWithLineBreaks()
                     ->limitList(2)
                     ->expandableLimitedList(),
@@ -526,14 +635,9 @@ class TransactionResource extends Resource
                     ->searchable()
                     ->preload(),
 
-                SelectFilter::make('item_type')
-                    ->label('Tipe Transaksi')
-                    ->relationship('transactionDetails', 'item_type')
-                    ->options([
-                        'normal'  => 'Normal',
-                        'member'  => 'Member',
-                        'package' => 'Paket',
-                    ]),
+                SelectFilter::make('status')
+                    ->label('Status')
+                    ->options(TransactionStatusEnum::labels()),
             ], layout: FiltersLayout::AboveContent)
 
             ->recordActions([
