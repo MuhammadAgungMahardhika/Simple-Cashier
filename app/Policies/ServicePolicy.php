@@ -10,4 +10,14 @@ use Illuminate\Auth\Access\Response;
 class ServicePolicy
 {
     use HasPolicyAuthorization;
+
+    public function export(User $user): bool
+    {
+        return  static::hasPermission('export', static::getResourceName());
+    }
+
+    public function import(User $user): bool
+    {
+        return  static::hasPermission('import', static::getResourceName());
+    }
 }

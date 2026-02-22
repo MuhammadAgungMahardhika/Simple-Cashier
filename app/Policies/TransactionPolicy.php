@@ -9,6 +9,10 @@ use Illuminate\Database\Eloquent\Model;
 class TransactionPolicy
 {
     use HasPolicyAuthorization;
+    public function export(User $user): bool
+    {
+        return  static::hasPermission('export', static::getResourceName());
+    }
     public function update(User $user, Model $record): bool
     {
         return  static::hasPermission('update', static::getResourceName()) && in_array($record->status, [

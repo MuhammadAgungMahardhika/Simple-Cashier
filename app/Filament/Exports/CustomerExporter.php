@@ -15,13 +15,14 @@ class CustomerExporter extends Exporter
     public static function getColumns(): array
     {
         return [
-            ExportColumn::make('id')
-                ->label('ID'),
             ExportColumn::make('code')->label('Kode Pelanggan'),
             ExportColumn::make('name')->label('Nama Pelanggan'),
             ExportColumn::make('phone')->label('Telepon'),
             ExportColumn::make('email')->label('Email'),
             ExportColumn::make('address')->label('Alamat'),
+            ExportColumn::make('member_started_at')->label('Member Mulai'),
+            ExportColumn::make('member_expired_at')->label('Member Berakhir'),
+            ExportColumn::make('price')->label('Harga Member'),
             ExportColumn::make('created_by'),
             ExportColumn::make('updated_by'),
             ExportColumn::make('created_at'),

@@ -64,6 +64,11 @@ trait HasPolicyAuthorization
         return static::hasPermission('delete', static::getResourceName());
     }
 
+    public function deleteAny(User $user): bool
+    {
+        return static::hasPermission('delete-any', static::getResourceName());
+    }
+
     public function restore(User $user, Model $record): bool
     {
         return static::hasPermission('restore', static::getResourceName());

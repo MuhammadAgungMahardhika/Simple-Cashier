@@ -10,4 +10,9 @@ use Illuminate\Auth\Access\Response;
 class CustomerPolicy
 {
     use HasPolicyAuthorization;
+
+    public function export(User $user): bool
+    {
+        return  static::hasPermission('export', static::getResourceName());
+    }
 }

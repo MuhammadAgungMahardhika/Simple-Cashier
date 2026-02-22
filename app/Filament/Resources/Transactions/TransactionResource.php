@@ -13,7 +13,9 @@ use App\Models\Service;
 use App\Models\Transaction;
 use BackedEnum;
 use Filament\Actions\ActionGroup;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
@@ -688,8 +690,11 @@ class TransactionResource extends Resource
                 EditAction::make()->recordTitleAttribute('transaction_code'),
                 DeleteAction::make(),
             ])
-
-            ->toolbarActions([]);
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
+                ]),
+            ]);
     }
 
     // =========================================================================

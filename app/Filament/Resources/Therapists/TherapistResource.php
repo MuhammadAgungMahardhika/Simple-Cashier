@@ -78,7 +78,11 @@ class TherapistResource extends Resource
                 EditAction::make(),
                 DeleteAction::make(),
             ])
-            ->toolbarActions([]);
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
+                ]),
+            ]);
     }
 
     public static function getPages(): array

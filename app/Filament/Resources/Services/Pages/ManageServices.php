@@ -5,11 +5,13 @@ namespace App\Filament\Resources\Services\Pages;
 use App\Filament\Exports\ServiceExporter;
 use App\Filament\Imports\ServiceImporter;
 use App\Filament\Resources\Services\ServiceResource;
+use App\Policies\ServicePolicy;
 use Filament\Actions\CreateAction;
 use Filament\Actions\ExportAction;
 use Filament\Actions\ImportAction;
 use Filament\Resources\Pages\ManageRecords;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Facades\Auth;
 
 class ManageServices extends ManageRecords
 {
@@ -24,9 +26,12 @@ class ManageServices extends ManageRecords
                 ->fileName(fn() => 'data-layanan-' . now()->format('Ymd_His'))
                 ->icon(Heroicon::ArrowDown)
                 ->color('success')
-                ->slideOver()
+                ->authorize(fn() =>  app(ServicePolicy::class)->export(Auth::user()))
                 ->label('Ekspor Data Layanan'),
-            ImportAction::make()->importer(ServiceImporter::class)->label('Impor Data Layanan')->icon(Heroicon::ArrowDown),
+            ImportAction::make()
+                ->importer(ServiceImporter::class)->label('Impor Data Layanan')
+                ->authorize(fn() =>  app(ServicePolicy::class)->import(Auth::user()))
+                ->icon(Heroicon::ArrowDown),
 
         ];
     }

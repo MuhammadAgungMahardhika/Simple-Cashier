@@ -22,6 +22,7 @@ class PermissionAndRoleSeeder extends Seeder
             'create-user',
             'update-user',
             'delete-user',
+            'delete-any-user',
         ];
         $rolePermissions = [
             'view-any-role',
@@ -29,6 +30,7 @@ class PermissionAndRoleSeeder extends Seeder
             'create-role',
             'update-role',
             'delete-role',
+            'delete-any-role',
         ];
 
         $customerPermissions = [
@@ -37,6 +39,7 @@ class PermissionAndRoleSeeder extends Seeder
             'create-customer',
             'update-customer',
             'delete-customer',
+            'delete-any-customer',
         ];
 
         $serviceGroupPermissions = [
@@ -45,6 +48,7 @@ class PermissionAndRoleSeeder extends Seeder
             'create-service-group',
             'update-service-group',
             'delete-service-group',
+            'delete-any-service-group',
         ];
         $servicePermissions = [
             'view-any-service',
@@ -52,6 +56,7 @@ class PermissionAndRoleSeeder extends Seeder
             'create-service',
             'update-service',
             'delete-service',
+            'delete-any-service',
         ];
 
         $transactionPermissions = [
@@ -60,6 +65,7 @@ class PermissionAndRoleSeeder extends Seeder
             'create-transaction',
             'update-transaction',
             'delete-transaction',
+            'delete-any-transaction',
         ];
 
         $packagePermissions = [
@@ -68,6 +74,7 @@ class PermissionAndRoleSeeder extends Seeder
             'create-package',
             'update-package',
             'delete-package',
+            'delete-any-package',
         ];
 
         $discountPermissions = [
@@ -76,6 +83,7 @@ class PermissionAndRoleSeeder extends Seeder
             'create-discount',
             'update-discount',
             'delete-discount',
+            'delete-any-discount',
         ];
 
 
@@ -88,6 +96,17 @@ class PermissionAndRoleSeeder extends Seeder
             "view-stats-widget",
             "view-top-customers-widget",
         ];
+
+        $importPermissions = [
+            'import-customer',
+            'import-service',
+        ];
+        $exportPermissions = [
+            'export-customer',
+            'export-service',
+            'export-transaction',
+            'export-therapist',
+        ];
         // Menggabungkan semua permissions ke dalam satu array untuk proses pembuatan permissions
         $allPermissions = array_merge(
             $userPermissions,
@@ -99,6 +118,8 @@ class PermissionAndRoleSeeder extends Seeder
             $packagePermissions,
             $discountPermissions,
             $widgetPermissions,
+            $exportPermissions,
+            $importPermissions
         );
 
         // Membuat semua permissions
@@ -117,6 +138,8 @@ class PermissionAndRoleSeeder extends Seeder
                 $packagePermissions,
                 $discountPermissions,
                 $widgetPermissions,
+                $exportPermissions,
+                $importPermissions
             ),
             'cashier' => [
                 'view-any-customer',
@@ -146,6 +169,11 @@ class PermissionAndRoleSeeder extends Seeder
                 'view-revenue-widget',
                 'view-stats-widget',
                 'view-top-customers-widget',
+
+                'export-transaction',
+                'export-customer',
+                'export-service',
+                'export-therapist',
             ],
 
         ];
