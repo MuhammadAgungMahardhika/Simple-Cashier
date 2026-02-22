@@ -19,7 +19,7 @@ class ManageTransactions extends ManageRecords
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make()->size(Size::ExtraLarge)->slideOver(),
+            CreateAction::make()->size(Size::ExtraLarge),
             ExportAction::make()->exporter(TransactionExporter::class)
         ];
     }

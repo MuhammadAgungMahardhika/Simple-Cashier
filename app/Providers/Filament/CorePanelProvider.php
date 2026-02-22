@@ -71,7 +71,8 @@ class CorePanelProvider extends PanelProvider
             ->navigationGroups([
                 NavigationGroup::make()
                     ->label('Master Data')
-                    ->icon(Heroicon::QueueList),
+                    ->icon(Heroicon::QueueList)
+                    ->collapsible(false),
 
             ])->sidebarCollapsibleOnDesktop(true)
             ->authMiddleware([

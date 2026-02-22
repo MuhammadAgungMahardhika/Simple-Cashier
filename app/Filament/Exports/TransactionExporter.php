@@ -15,15 +15,12 @@ class TransactionExporter extends Exporter
     public static function getColumns(): array
     {
         return [
-            ExportColumn::make('id')
-                ->label('ID'),
+            ExportColumn::make('transaction_code')->label('Kode Transaksi'),
             ExportColumn::make('discount.name')->label('Diskon'),
             ExportColumn::make('customer.name')->label('Pelanggan'),
-            ExportColumn::make('transaction_code')->label('Kode Transaksi'),
             ExportColumn::make('total_before_discount')->label('Total Sebelum Diskon'),
             ExportColumn::make('discount_amount')->label('Jumlah Diskon'),
             ExportColumn::make('total_after_discount')->label('Total Setelah Diskon'),
-            ExportColumn::make('subtotal')->label('Subtotal'),
             ExportColumn::make('transaction_date')->label('Tanggal Transaksi'),
             ExportColumn::make('payment_method')->label('Metode Pembayaran'),
             ExportColumn::make('status'),
