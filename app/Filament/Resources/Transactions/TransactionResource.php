@@ -588,10 +588,21 @@ class TransactionResource extends Resource
                     ->limit(30),
 
                 TextColumn::make('transactionDetails.item_name')
-                    ->label('Item')
+                    ->label('Layanan')
                     ->listWithLineBreaks()
                     ->limitList(2)
                     ->expandableLimitedList(),
+
+                TextColumn::make('therapists.name')
+                    ->label('Terapis')
+                    ->searchable()
+                    ->sortable()
+                    ->listWithLineBreaks()
+                    ->limitList(2)
+                    ->expandableLimitedList()
+                    ->limit(30)
+                    ->toggleable(isToggledHiddenByDefault: true),
+
 
                 TextColumn::make('transactionDetails.item_type')
                     ->label('Tipe')

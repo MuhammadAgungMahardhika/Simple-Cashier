@@ -43,6 +43,12 @@ class Transaction extends Model
     {
         return $this->belongsTo(Customer::class);
     }
+    public function therapists()
+    {
+        return $this->belongsToMany(Therapist::class, 'transaction_details');
+    }
+
+
     public function services()
     {
         return $this->belongsToMany(Service::class)->withPivot('quantity', 'price');

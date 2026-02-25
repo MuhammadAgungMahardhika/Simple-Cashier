@@ -13,6 +13,11 @@ class Therapist extends Model
 
     use Blameable;
 
+
+    public function transactions()
+    {
+        return $this->belongsToMany(Transaction::class, 'transaction_details');
+    }
     public function transactionDetails()
     {
         return $this->hasMany(TransactionDetail::class);

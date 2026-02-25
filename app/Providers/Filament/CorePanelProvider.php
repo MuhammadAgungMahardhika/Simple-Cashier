@@ -73,6 +73,10 @@ class CorePanelProvider extends PanelProvider
                     ->label('Master Data')
                     ->icon(Heroicon::QueueList)
                     ->collapsible(false),
+                NavigationGroup::make()
+                    ->label('Laporan')
+                    ->icon(Heroicon::DocumentText)
+                    ->collapsible(false),
 
             ])->sidebarCollapsibleOnDesktop(true)
             ->authMiddleware([
