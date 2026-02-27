@@ -12,6 +12,7 @@ use App\Models\Package;
 use App\Models\Service;
 use App\Models\Transaction;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -20,6 +21,7 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Repeater\TableColumn;
@@ -235,7 +237,7 @@ class TransactionResource extends Resource
                 ->getOptionLabelFromRecordUsing(
                     fn($record) => "{$record->code} - {$record->name} ({$record->phone})"
                 )
-                ->searchable()
+                ->searchable(['code', 'name', 'phone'])
                 ->preload()
                 ->required()
                 ->live()
@@ -299,6 +301,11 @@ class TransactionResource extends Resource
                     Grid::make()->columns(2)->schema([
                         TextInput::make('name')->label('Nama Pelanggan')->required(),
                         TextInput::make('phone')->label('Nomor Telepon/WA')->tel()->required(),
+                        TextInput::make('birth_place')
+                            ->label('Tempat Lahir'),
+                        DatePicker::make('birth_date')
+                            ->label('Tanggal Lahir')
+                            ->date('d-m-Y'),
                         TextInput::make('email')->label('Email')->email(),
                         Textarea::make('address')->label('Alamat'),
                     ]),
@@ -306,11 +313,79 @@ class TransactionResource extends Resource
                 ->createOptionModalHeading('Tambah Pelanggan Baru')
                 ->editOptionForm([
                     Grid::make()->columns(2)->schema([
-                        TextInput::make('code')->label('Kode Pelanggan')->readOnly()->required(),
+                        TextInput::make('code')->label('Kode Pelanggan')->disabled()->dehydrated()->required(),
                         TextInput::make('name')->label('Nama Pelanggan')->required(),
                         TextInput::make('phone')->label('Nomor Telepon/WA')->tel()->required(),
+                        TextInput::make('birth_place')
+                            ->label('Tempat Lahir'),
+                        DatePicker::make('birth_date')
+                            ->label('Tanggal Lahir')
+                            ->date('d-m-Y'),
                         TextInput::make('email')->label('Email')->email(),
                         Textarea::make('address')->label('Alamat'),
+
+
+                        Placeholder::make('membership_status')
+                            ->label('Status Member')
+                            ->content(function ($record) {
+                                if (!$record || !$record->member_expired_at) {
+                                    return 'Non Member';
+                                }
+
+                                return now()->lte($record->member_expired_at)
+                                    ? 'Aktif sampai ' . $record->member_expired_at->format('d M Y')
+                                    : 'Expired pada ' . $record->member_expired_at->format('d M Y');
+                            })->columnSpanFull(),
+
+                        DatePicker::make('member_started_at')
+                            ->label('Tanggal Mulai')
+                            ->disabled(),
+
+                        DatePicker::make('member_expired_at')
+                            ->label('Tanggal Berakhir')
+                            ->disabled(),
+
+                        Action::make('extendMembership')
+                            ->label('Bayar / Perpanjang 1 Bulan')
+                            ->action(function ($record) {
+
+                                if (!$record) return;
+
+                                $now = now();
+
+                                // Kalau masih aktif → tambahkan dari expired terakhir
+                                if ($record->member_expired_at && $now->lte($record->member_expired_at)) {
+                                    $newExpired = $record->member_expired_at->copy()->addMonth();
+                                } else {
+                                    // Kalau belum pernah atau sudah expired
+                                    $record->member_started_at = $now;
+                                    $newExpired = $now->copy()->addMonth();
+                                }
+
+                                $record->member_expired_at = $newExpired;
+                                $record->save();
+                            }),
+                        Action::make('decreaseMembership')
+                            ->label('Kurangi 1 Bulan')
+                            ->color('danger')
+                            ->action(function ($record) {
+
+                                if (!$record->member_expired_at) {
+                                    return;
+                                }
+
+                                $now = now();
+                                $newExpired = $record->member_expired_at->copy()->subMonth();
+
+                                // Jangan boleh kurang dari hari ini
+                                if ($newExpired->lt($now)) {
+                                    $newExpired = $now;
+                                }
+
+                                $record->member_expired_at = $newExpired;
+                                $record->save();
+                            }),
+
                     ]),
                 ])
                 ->editOptionModalHeading('Ubah Data Pelanggan'),

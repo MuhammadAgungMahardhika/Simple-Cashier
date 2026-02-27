@@ -15,9 +15,12 @@ return new class extends Migration
             $table->id();
             $table->string('code')->unique();
             $table->string('name');
+            $table->string('birth_place')->nullable();
+            $table->date('birth_date')->nullable();
+            $table->string('address')->nullable();
             $table->string('phone')->nullable();
             $table->string('email')->unique()->nullable();
-            $table->string('address')->nullable();
+
 
             $table->date('member_started_at')->nullable();
             $table->date('member_expired_at')->nullable();

@@ -25,7 +25,7 @@ class Customer extends Model
         });
     }
 
-    private static function generateCustomerCode(): string
+    public static function generateCustomerCode(): string
     {
         $date = Carbon::now()->format('dm');   // DDMM
         $year = Carbon::now()->format('y');    // YY

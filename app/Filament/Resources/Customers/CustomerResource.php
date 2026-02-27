@@ -20,6 +20,9 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Enums\FiltersLayout;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use UnitEnum;
 
@@ -37,18 +40,25 @@ class CustomerResource extends Resource
             ->components([
                 TextInput::make('code')
                     ->label('Kode Pelanggan')
-                    ->readOnly()
-                    ->visibleOn(['edit'])
+                    ->disabledOn('create')
+                    ->default(fn() => Customer::generateCustomerCode())
+                    ->dehydrated()
                     ->required(),
 
                 TextInput::make('name')
                     ->label('Nama Pelanggan')
                     ->required(),
-
                 TextInput::make('phone')
                     ->label('Nomor Telepon / WA')
                     ->tel()
                     ->required(),
+
+                TextInput::make('birth_place')
+                    ->label('Tempat Lahir'),
+
+                DatePicker::make('birth_date')
+                    ->label('Tanggal Lahir')
+                    ->date('d-m-Y'),
 
                 TextInput::make('email')
                     ->label('Email')
@@ -90,7 +100,7 @@ class CustomerResource extends Resource
 
                                 // Kalau masih aktif → tambahkan dari expired terakhir
                                 if ($record->member_expired_at && $now->lte($record->member_expired_at)) {
-                                    $newExpired = $record->member_expired_at->addMonth();
+                                    $newExpired = $record->member_expired_at->copy()->addMonth();
                                 } else {
                                     // Kalau belum pernah atau sudah expired
                                     $record->member_started_at = $now;
@@ -131,13 +141,15 @@ class CustomerResource extends Resource
             ->columns([
                 TextColumn::make('code')
                     ->label('Kode Pelanggan')
+                    ->sortable()
                     ->searchable(),
                 TextColumn::make('name')
                     ->label('Nama Pelanggan')
+                    ->sortable()
                     ->searchable(),
                 TextColumn::make('is_member')
                     ->label('Status Member')
-                    ->searchable()
+                    // ->searchable()
                     ->formatStateUsing(fn($state) => $state ? 'Member' : 'Non-Member')
                     ->badge()
                     ->color(fn($state) => $state ? 'success' : 'danger'),
@@ -147,9 +159,13 @@ class CustomerResource extends Resource
                     ->sortable(),
                 TextColumn::make('member_expired_at')
                     ->label('Masa Berlaku Member')
-                    ->date()
+                    ->date('d-m-Y')
                     ->sortable(),
-
+                TextColumn::make('birth_place')->label('Tempat Lahir')->searchable(),
+                TextColumn::make('birth_date')
+                    ->label('Tanggal Lahir')
+                    ->date('d-m-Y')
+                    ->sortable(),
                 TextColumn::make('phone')
                     ->label('Nomor Telepon/Wa')
                     ->searchable(),
@@ -173,8 +189,15 @@ class CustomerResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
-            ])
+                Filter::make('is_member ')
+                    ->label('Status Member')
+                    ->query(fn($query) => $query->whereNotNull('member_expired_at')->where('member_expired_at', '>=', now())),
+                Filter::make('is_non_member')
+                    ->label('Non-Member')
+                    ->query(fn($query) => $query->whereNull('member_expired_at')->orWhere('member_expired_at', '<', now())),
+
+
+            ], layout: FiltersLayout::AboveContent)
             ->recordActions([
                 EditAction::make(),
                 DeleteAction::make(),
