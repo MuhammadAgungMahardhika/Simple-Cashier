@@ -63,13 +63,6 @@ class FeeReportResource extends Resource
                     ->label('Layanan')
                     ->searchable()
                     ->sortable(),
-
-                TextColumn::make('package.name')
-                    ->label('Paket')
-                    ->searchable()
-                    ->sortable()
-                    ->formatStateUsing(fn($state) => $state ?? '-'),
-
                 TextColumn::make('item_type')
                     ->label('Tipe Layanan')
                     ->searchable()
@@ -85,8 +78,11 @@ class FeeReportResource extends Resource
                         'package' => 'Paket',
                         default   => 'Normal',
                     }),
-
-
+                TextColumn::make('package.name')
+                    ->label('Paket')
+                    ->searchable()
+                    ->sortable()
+                    ->formatStateUsing(fn($state) => $state ?? '-'),
                 TextColumn::make('fee_amount')
                     ->label('Fee Terapis')
                     ->size(TextSize::Medium)
@@ -100,7 +96,19 @@ class FeeReportResource extends Resource
 
             ->filters([
 
-
+                Filter::make('transaction_date')
+                    ->schema([
+                        DatePicker::make('from')->label('Dari Tanggal')->default(now()->startOfDay()),
+                        DatePicker::make('to')->label('Sampai Tanggal')->default(now()->endOfDay()),
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        if ($data['from']) {
+                            $query->whereHas('transaction', fn(Builder $q) => $q->whereDate('transaction_date', '>=', $data['from']));
+                        }
+                        if ($data['to']) {
+                            $query->whereHas('transaction', fn(Builder $q) => $q->whereDate('transaction_date', '<=', $data['to']));
+                        }
+                    })->columnSpan(2)->columns(2),
                 SelectFilter::make('therapist_id')
                     ->label('Terapis')
                     ->relationship('therapist', 'name')

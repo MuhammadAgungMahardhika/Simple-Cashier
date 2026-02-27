@@ -76,10 +76,13 @@ class TransactionReportResource extends Resource
                     ->limit(30),
 
                 TextColumn::make('transactionDetails.item_name')
-                    ->label('Item')
+                    ->label('Layanan')
                     ->listWithLineBreaks()
                     ->limitList(2)
-                    ->expandableLimitedList(),
+                    ->expandableLimitedList()
+                    ->toggleable()
+                    ->toggledHiddenByDefault(),
+
 
                 TextColumn::make('transactionDetails.item_type')
                     ->label('Tipe')
@@ -93,7 +96,8 @@ class TransactionReportResource extends Resource
                         'member'  => 'Member',
                         'package' => 'Paket',
                         default   => 'Normal',
-                    }),
+                    })
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('status')
                     ->badge()

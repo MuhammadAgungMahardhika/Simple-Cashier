@@ -679,6 +679,14 @@ class TransactionResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
 
 
+
+                TextColumn::make('transactionDetails.item_name')
+                    ->label('Layanan')
+                    ->listWithLineBreaks()
+                    ->limitList(2)
+                    ->expandableLimitedList(),
+
+
                 TextColumn::make('transactionDetails.item_type')
                     ->label('Tipe')
                     ->badge()
@@ -691,7 +699,8 @@ class TransactionResource extends Resource
                         'member'  => 'Member',
                         'package' => 'Paket',
                         default   => 'Normal',
-                    }),
+                    })
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('status')
                     ->badge()

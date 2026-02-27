@@ -155,19 +155,23 @@ class CustomerResource extends Resource
                     ->color(fn($state) => $state ? 'success' : 'danger'),
                 TextColumn::make('member_started_at')
                     ->label('Tanggal Mulai Member')
-                    ->date()
+                    ->date('d-m-Y')
+                    ->alignEnd()
                     ->sortable(),
                 TextColumn::make('member_expired_at')
                     ->label('Masa Berlaku Member')
                     ->date('d-m-Y')
+                    ->alignEnd()
                     ->sortable(),
-                TextColumn::make('birth_place')->label('Tempat Lahir')->searchable(),
+                TextColumn::make('birth_place')->label('Tempat Lahir')->searchable()->alignEnd(),
                 TextColumn::make('birth_date')
                     ->label('Tanggal Lahir')
+                    ->alignEnd()
                     ->date('d-m-Y')
                     ->sortable(),
                 TextColumn::make('phone')
                     ->label('Nomor Telepon/Wa')
+                    ->alignEnd()
                     ->searchable(),
                 TextColumn::make('email')
                     ->label('Email')

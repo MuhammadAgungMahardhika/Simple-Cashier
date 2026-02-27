@@ -35,7 +35,7 @@ class CustomerSeeder extends Seeder
                         'birth_place' => trim($row[3]),
                         'birth_date' => Carbon::createFromFormat('d-M-y', trim($row[4]))->format('Y-m-d'),
                         'address' => trim($row[5]),
-                        'phone' => trim($row[6]),
+                        'phone' => preg_replace('/\s+/', '', trim($row[6])),
                         'member_started_at' => Carbon::createFromFormat('d-M-y', trim($row[7]))->format('Y-m-d'),
                         'member_expired_at' => Carbon::createFromFormat('d-M-y', trim($row[8]))->format('Y-m-d'),
                         'created_by' => 'Sistem',

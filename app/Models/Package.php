@@ -17,6 +17,10 @@ class Package extends Model
         return $this->hasMany(PackageDetail::class);
     }
 
+    public function transactionDetails()
+    {
+        return $this->hasMany(TransactionDetail::class);
+    }
     public function services()
     {
         return $this->belongsToMany(Service::class, 'package_details');
