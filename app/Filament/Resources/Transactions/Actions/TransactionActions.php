@@ -14,7 +14,7 @@ class TransactionActions
      * Digunakan saat kasir menerima pembayaran penuh
      */
 
-    public static $defaultFormat = 'thermal';
+    public static $defaultFormat = 'dotmatrix';
     public static function markAsPaid(): Action
     {
         return Action::make('markAsPaid')
